@@ -1,2 +1,4 @@
 *
+!go.mod
+!go.sum
 !index.go
