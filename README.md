@@ -1,4 +1,4 @@
-# nar-serve: unpack and serve NAR file content
+# $ nar-serve # unpack and serve NAR file content
 
 Put this in front of a Nix binary cache to serve it's content unpacked.
 
