@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -14,8 +15,9 @@ import (
 	"github.com/zimbatm/go-nix/src/nar"
 )
 
-// TODO: make that configurable
-var nixCache = libstore.DefaultCache
+var nixCache = libstore.HTTPBinaryCacheStore {
+	CacheURI: getEnv("NAR_CACHE_URI", "https://cache.nixos.org"),
+}
 
 const indexPage = `
 <pre>
@@ -150,4 +152,12 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		// TODO: since the nar entries are sorted it's possible to abort early by
 		//       comparing the paths
 	}
+}
+
+func getEnv(name, def string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		return def
+	}
+	return value
 }
