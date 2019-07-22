@@ -1,5 +1,5 @@
 *
 !go.mod
 !go.sum
-!handler
-!handler/*.go
+!api
+!api/*.go

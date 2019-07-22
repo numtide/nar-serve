@@ -45,7 +45,7 @@ Like this project? Star it on <a href="https://github.com/zimbatm/go-nix">GitHub
 // TODO: consider keeping a LRU cache
 func getNarInfo(key string) (*libstore.NarInfo, error) {
 	path := fmt.Sprintf("%s.narinfo", key)
-	fmt.Println("Fetching the narinfo:", path)
+	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.CacheURI)
 	r, err := nixCache.GetFile(path)
 	if err != nil {
 		return nil, err

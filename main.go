@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/urfave/negroni"
-	"github.com/zimbatm/nar-serve/handler"
+	api "github.com/zimbatm/nar-serve/api"
 )
 
 func main() {
 	n := negroni.Classic() // Includes some default middlewares
-	n.UseHandler(http.HandlerFunc(handler.Handler))
+	n.UseHandler(http.HandlerFunc(api.Handler))
 
 	addr := ":3000"
 	fmt.Println("Starting server on address", addr)
