@@ -1,4 +1,5 @@
 *
 !go.mod
 !go.sum
-!index.go
+!handler
+!handler/*.go

@@ -2,9 +2,9 @@
     "version": 2,
     "name": "nar-serve",
     "builds": [
-        { "src": "*.go", "use": "@now/go" }
+        { "src": "handler/*.go", "use": "@now/go" }
     ],
     "routes": [
-      { "src": "/.*", "dest": "/cmd/nar-serve/index.go" }
+      { "src": "/.*", "dest": "/cmd/nar-serve/handler/index.go" }
     ]
 }
