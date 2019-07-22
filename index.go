@@ -60,7 +60,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	path := strings.Trim(req.URL.Path, "/")
 	path = strings.TrimPrefix(path, "nix/store/") // allow to paste from the filesystem
 	components := strings.Split(path, "/")
-	if len(components) < 2 {
+	if len(components) == 0 {
 		w.Header().Set("Content-Type", "text/html")
 		w.Write([]byte(indexPage))
 		return
