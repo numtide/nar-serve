@@ -41,10 +41,11 @@ the fly. That's it.
 
 Eg:
 
-* http://localhost:3000/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
+* https://nar-serve.zimbatm.now.sh/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
 
 ## Known issues
 
 * NAR files are streamed from the cache which makes file access a O(N)
   operation on the number of files in the archive.
 * No local disk cache is currently implemented
+* Directores don't contain any file listing at the moment
