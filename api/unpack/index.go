@@ -108,16 +108,46 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		if hdr.Name == newPath {
 			switch hdr.Type {
 			case nar.TypeDirectory:
-				fmt.Fprintf(w, "found a directory here")
-			case nar.TypeSymlink:
-				var redirectPath string
-				if filepath.IsAbs(hdr.Linkname) {
-					redirectPath = hdr.Linkname
-				} else {
-					redirectPath = filepath.Join(MountPath, narDir, filepath.Dir(hdr.Name), hdr.Linkname)
-				}
+				w.Header().Set("Content-Type", "text/html")
+				fmt.Fprintf(w, "<p>%s is a directory:</p><ol>", hdr.Name)
+				for {
+					hdr2, err := narReader.Next()
+					if err != nil {
+						if err == io.EOF {
+							break
+						} else {
+							http.Error(w, err.Error(), 500)
+						}
+					}
 
-				http.Redirect(w, req, redirectPath, http.StatusMovedPermanently)
+					if !strings.HasPrefix(hdr2.Name, hdr.Name) {
+						break
+					}
+
+					var label string
+					switch hdr2.Type {
+					case nar.TypeDirectory:
+						label = hdr2.Name + "/"
+					case nar.TypeSymlink:
+						label = hdr2.Name + " -> " + absSymlink(narinfo, hdr2)
+					case nar.TypeRegular:
+						label = hdr2.Name
+					default:
+						http.Error(w, fmt.Sprintf("BUG: unknown NAR header type: %s", hdr.Type), 500)
+					}
+
+					fmt.Fprintf(w, "<li><a href='%s'>%s</a></li>", filepath.Join(narinfo.StorePath, hdr2.Name), label)
+				}
+			case nar.TypeSymlink:
+				redirectPath := absSymlink(narinfo, hdr)
+
+				// Make sure the symlink is absolute
+
+				if !strings.HasPrefix(redirectPath, MountPath) {
+					fmt.Fprintf(w, "found symlink out of store: %s\n", redirectPath)
+				} else {
+					http.Redirect(w, req, redirectPath, http.StatusMovedPermanently)
+				}
 			case nar.TypeRegular:
 				// TODO: ETag header matching. Use the NAR file name as the ETag
 				// TODO: expose the executable flag somehow?
@@ -150,4 +180,12 @@ func getEnv(name, def string) string {
 		return def
 	}
 	return value
+}
+
+func absSymlink(narinfo *libstore.NarInfo, hdr *nar.Header) string {
+	if filepath.IsAbs(hdr.Linkname) {
+		return hdr.Linkname
+	}
+
+	return filepath.Join(narinfo.StorePath, filepath.Dir(hdr.Name), hdr.Linkname)
 }

@@ -43,10 +43,10 @@ Eg:
 
 * https://nar-serve.zimbatm.now.sh/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
 
-## Known issues
+## Missing features
 
-* NAR files are streamed from the cache which makes file access a O(N)
-  operation on the number of files in the archive.
+* The executable bit of files is not exposed to the HTTP client
+* The NAR validity is not checked (no signature check)
+* The API works only if the cache is using /nix/store as it's store path
 * No local disk cache is currently implemented
-* Directores don't contain any file listing at the moment
-* the NAR validity is not checked
+* No content-negotiation. We could use the store hash as ETag headers.
