@@ -50,3 +50,4 @@ Eg:
 * The API works only if the cache is using /nix/store as it's store path
 * No local disk cache is currently implemented
 * No content-negotiation. We could use the store hash as ETag headers.
+* Look for `<hash>.ls` files for faster directory listing instead
