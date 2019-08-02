@@ -3,6 +3,7 @@ mkShell {
   buildInputs = [
     go
     now-cli
+    reflex
   ];
 
   shellHook = ''

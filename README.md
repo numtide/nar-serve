@@ -10,3 +10,7 @@ publishing step for release artifacts.
 * Inspect the content of a NAR file
 * Publish a static website
 * Publish any static assets
+
+## Development
+
+To start the build loop, run `nix-shell --run ./start-dev`.
