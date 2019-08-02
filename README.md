@@ -49,3 +49,4 @@ Eg:
   operation on the number of files in the archive.
 * No local disk cache is currently implemented
 * Directores don't contain any file listing at the moment
+* the NAR validity is not checked
