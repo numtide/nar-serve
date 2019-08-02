@@ -49,7 +49,8 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Println(len(components), components)
 
-	narName := strings.Split(components[0], "-")[0]
+	narDir := components[0]
+	narName := strings.Split(narDir, "-")[0]
 
 	// Get the NAR info to find the NAR
 	narinfo, err := getNarInfo(narName)
@@ -109,7 +110,14 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			case nar.TypeDirectory:
 				fmt.Fprintf(w, "found a directory here")
 			case nar.TypeSymlink:
-				fmt.Fprintf(w, "found a symlink to %s", hdr.Linkname)
+				var redirectPath string
+				if filepath.IsAbs(hdr.Linkname) {
+					redirectPath = hdr.Linkname
+				} else {
+					redirectPath = filepath.Join(MountPath, narDir, filepath.Dir(hdr.Name), hdr.Linkname)
+				}
+
+				http.Redirect(w, req, redirectPath, http.StatusMovedPermanently)
 			case nar.TypeRegular:
 				// TODO: ETag header matching. Use the NAR file name as the ETag
 				// TODO: expose the executable flag somehow?
