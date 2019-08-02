@@ -12,7 +12,7 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/nix/store/", unpack.Handler)
+	mux.HandleFunc(unpack.MountPath, unpack.Handler)
 
 	// Includes some default middlewares
 	// Serve static files from ./public

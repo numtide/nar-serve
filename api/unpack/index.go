@@ -31,11 +31,16 @@ func getNarInfo(key string) (*libstore.NarInfo, error) {
 	return libstore.ParseNarInfo(r)
 }
 
+// MountPath is where this handler is supposed to be mounted
+const MountPath = "/nix/store/"
 
 // Handler is the entry-point for @now/go as well as the stub main.go net/http
 func Handler(w http.ResponseWriter, req *http.Request) {
-	path := strings.Trim(req.URL.Path, "/")
-	path = strings.TrimPrefix(path, "nix/store/") // allow to paste from the filesystem
+	// remove the mount path from the path
+	path := strings.TrimPrefix(req.URL.Path, MountPath)
+	// ignore trailing slashes
+	path = strings.TrimRight(path, "/")
+
 	components := strings.Split(path, "/")
 	if len(components) == 0 {
 		w.Header().Set("Content-Type", "text/plain")
