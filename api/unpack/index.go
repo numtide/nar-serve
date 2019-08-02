@@ -19,29 +19,6 @@ var nixCache = libstore.HTTPBinaryCacheStore {
 	CacheURI: getEnv("NAR_CACHE_URI", "https://cache.nixos.org"),
 }
 
-const indexPage = `
-<pre>
-#     #     #     ######             #####   #######  ######   #     #  #######  
-##    #    # #    #     #           #     #  #        #     #  #     #  #        
-# #   #   #   #   #     #           #        #        #     #  #     #  #        
-#  #  #  #     #  ######   #######   #####   #####    ######   #     #  #####    
-#   # #  #######  #   #                   #  #        #   #     #   #   #        
-#    ##  #     #  #    #            #     #  #        #    #     # #    #        
-#     #  #     #  #     #            #####   #######  #     #     #     #######  
-
-Unpack and serve the content of NAR files straight from [[ https://cache.nixos.org ]]
-
-Pick a NAR path on your filesystem and paste it at the end of the URL.
-
-
-Examples:
-
-  * <a href="/nix/store/zk5crljigizl5snkfyaijja89bb6228x-rake-12.3.1/bin/rake">readlink -f $(which rake)</a>
-  * <a href="/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html">/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html</a>
-
-Like this project? Star it on <a href="https://github.com/zimbatm/go-nix">GitHub</a>.
-`
-
 // TODO: consider keeping a LRU cache
 func getNarInfo(key string) (*libstore.NarInfo, error) {
 	path := fmt.Sprintf("%s.narinfo", key)
@@ -61,8 +38,8 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	path = strings.TrimPrefix(path, "nix/store/") // allow to paste from the filesystem
 	components := strings.Split(path, "/")
 	if len(components) == 0 {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(indexPage))
+		w.Header().Set("Content-Type", "text/plain")
+		http.Error(w, "store path missing", 404)
 		return
 	}
 	fmt.Println(len(components), components)

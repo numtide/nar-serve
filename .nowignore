@@ -2,4 +2,7 @@
 !go.mod
 !go.sum
 !api
-!api/*.go
+!api/*
+!api/*/*.go
+!public
+!public/*

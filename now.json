@@ -2,9 +2,11 @@
     "version": 2,
     "name": "nar-serve",
     "builds": [
-        { "src": "api/*.go", "use": "@now/go" }
+        { "src": "api/unpack/*.go", "use": "@now/go" },
+        { "src": "public/**", "use": "@now/static" }
     ],
     "routes": [
-      { "src": "/.*", "dest": "api/index.go" }
+      { "src": "/nix/store/.*", "dest": "api/unpack/index.go" },
+      { "src": "/(.*)", "dest": "public/$1" }
     ]
 }
