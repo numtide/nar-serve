@@ -1,16 +1,50 @@
-# $ nar-serve # unpack and serve NAR file content
+# nar-serve - serve NAR file content
 
-Put this in front of a Nix binary cache to serve it's content unpacked.
+All the files in https://cache.nixos.org are packed in NAR files which makes them not directly accessible. This service allows to dowload, decompress, unpack and serve any file in the cache on the fly.
 
-Since you want to push things to a binary cache, might as well avoid a second
-publishing step for release artifacts.
+This avoids having to publish the build artifacts to two places.
 
 ## Use cases
 
-* Inspect the content of a NAR file
-* Publish a static website
-* Publish any static assets
+* Avoid publishing build artifacts to both the binary cache and another service.
+* Allows to share build results easily.
+* Inspect the content of a NAR file.
+
+## Deploy
+
+This service is deployed on https://now.sh by default.
+
+```sh
+now
+```
+
+To specify your own cache (eg: cachix),
+
+```sh
+now --env NAR_CACHE_URI https://<yourcache>.cachix.org/
+```
 
 ## Development
 
-To start the build loop, run `nix-shell --run ./start-dev`.
+Inside the provided nix shell run:
+
+```
+./start-dev
+```
+
+This will create a small local server with live reload that emulates now.sh
+
+## Usage
+
+Append any store path to the hostname to fetch and unpack it on
+the fly. That's it.
+
+Eg:
+
+* http://localhost:3000/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
+
+## Known issues
+
+* NAR files are streamed from the cache which makes file access a O(N)
+  operation on the number of files in the archive.
+* No local disk cache is currently implemented
