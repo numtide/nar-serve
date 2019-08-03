@@ -15,24 +15,12 @@ import (
 	"github.com/zimbatm/go-nix/src/nar"
 )
 
-var nixCache = libstore.HTTPBinaryCacheStore {
-	CacheURI: getEnv("NAR_CACHE_URI", "https://cache.nixos.org"),
-}
-
-// TODO: consider keeping a LRU cache
-func getNarInfo(key string) (*libstore.NarInfo, error) {
-	path := fmt.Sprintf("%s.narinfo", key)
-	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.CacheURI)
-	r, err := nixCache.GetFile(path)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-	return libstore.ParseNarInfo(r)
-}
-
 // MountPath is where this handler is supposed to be mounted
 const MountPath = "/nix/store/"
+
+var nixCache = libstore.HTTPBinaryCacheStore{
+	CacheURI: getEnv("NAR_CACHE_URI", "https://cache.nixos.org"),
+}
 
 // Handler is the entry-point for @now/go as well as the stub main.go net/http
 func Handler(w http.ResponseWriter, req *http.Request) {
@@ -110,6 +98,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			case nar.TypeDirectory:
 				w.Header().Set("Content-Type", "text/html")
 				fmt.Fprintf(w, "<p>%s is a directory:</p><ol>", hdr.Name)
+				flush(w)
 				for {
 					hdr2, err := narReader.Next()
 					if err != nil {
@@ -137,6 +126,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 					}
 
 					fmt.Fprintf(w, "<li><a href='%s'>%s</a></li>", filepath.Join(narinfo.StorePath, hdr2.Name), label)
+					flush(w)
 				}
 			case nar.TypeSymlink:
 				redirectPath := absSymlink(narinfo, hdr)
@@ -188,4 +178,23 @@ func absSymlink(narinfo *libstore.NarInfo, hdr *nar.Header) string {
 	}
 
 	return filepath.Join(narinfo.StorePath, filepath.Dir(hdr.Name), hdr.Linkname)
+}
+
+func getNarInfo(key string) (*libstore.NarInfo, error) {
+	path := fmt.Sprintf("%s.narinfo", key)
+	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.CacheURI)
+	r, err := nixCache.GetFile(path)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return libstore.ParseNarInfo(r)
+}
+
+func flush(rw http.ResponseWriter) {
+	f, ok := rw.(http.Flusher)
+	if !ok {
+		panic("ResponseWriter is not a Flusher")
+	}
+	f.Flush()
 }
