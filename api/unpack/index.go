@@ -19,18 +19,6 @@ var nixCache = libstore.HTTPBinaryCacheStore {
 	CacheURI: getEnv("NAR_CACHE_URI", "https://cache.nixos.org"),
 }
 
-// TODO: consider keeping a LRU cache
-func getNarInfo(key string) (*libstore.NarInfo, error) {
-	path := fmt.Sprintf("%s.narinfo", key)
-	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.CacheURI)
-	r, err := nixCache.GetFile(path)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-	return libstore.ParseNarInfo(r)
-}
-
 // MountPath is where this handler is supposed to be mounted
 const MountPath = "/nix/store/"
 
@@ -180,6 +168,18 @@ func getEnv(name, def string) string {
 		return def
 	}
 	return value
+}
+
+// TODO: consider keeping a LRU cache
+func getNarInfo(key string) (*libstore.NarInfo, error) {
+	path := fmt.Sprintf("%s.narinfo", key)
+	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.CacheURI)
+	r, err := nixCache.GetFile(path)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return libstore.ParseNarInfo(r)
 }
 
 func absSymlink(narinfo *libstore.NarInfo, hdr *nar.Header) string {
