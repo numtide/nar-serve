@@ -2,7 +2,6 @@ with import <nixpkgs> {};
 mkShell {
   buildInputs = [
     go
-    now-cli
     reflex
   ];
 

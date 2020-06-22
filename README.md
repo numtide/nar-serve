@@ -10,20 +10,6 @@ This avoids having to publish the build artifacts to two places.
 * Allows to share build results easily.
 * Inspect the content of a NAR file.
 
-## Deploy
-
-This service is deployed on https://now.sh by default.
-
-```sh
-now
-```
-
-To specify your own cache (eg: cachix),
-
-```sh
-now --env NAR_CACHE_URI https://<yourcache>.cachix.org/
-```
-
 ## Development
 
 Inside the provided nix shell run:
