@@ -4,7 +4,6 @@ package main
 // or less the behaviour of now.sh but all compiled into a single binary.
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/urfave/negroni"
@@ -87,9 +86,14 @@ func robotsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(robotsTxt))
 }
 
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", indexHandler)
+	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/robots.txt", robotsHandler)
 	mux.HandleFunc(unpack.MountPath, unpack.Handler)
 
@@ -100,11 +104,5 @@ func main() {
 		negroni.NewLogger(),
 	)
 	n.UseHandler(mux)
-
-	addr := ":3000"
-	fmt.Println("Starting server on address", addr)
-	err := http.ListenAndServe(addr, n)
-	if err != nil {
-		panic(err)
-	}
+	n.Run()
 }
