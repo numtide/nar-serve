@@ -76,6 +76,8 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// TODO: try to load .ls files to speed-up the file lookups
+
 	narReader := nar.NewReader(r)
 	newPath := strings.Join(components[1:], "/")
 

@@ -1,8 +1,10 @@
 # nar-serve - serve NAR file content
 
-All the files in https://cache.nixos.org are packed in NAR files which makes them not directly accessible. This service allows to dowload, decompress, unpack and serve any file in the cache on the fly.
+Push your build artifacts to one place.
 
-This avoids having to publish the build artifacts to two places.
+All the files in https://cache.nixos.org are packed in NAR files which makes
+them not directly accessible. This service allows to download, decompress,
+unpack and serve any file in the cache on the fly.
 
 ## Use cases
 
