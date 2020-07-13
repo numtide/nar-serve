@@ -1,9 +1,9 @@
-with import <nixpkgs> {};
-mkShell {
+{ pkgs ? import <nixpkgs> {} }:
+pkgs.mkShell {
   buildInputs = [
-    go
-    now-cli
-    reflex
+    pkgs.go
+    pkgs.gopls
+    pkgs.reflex
   ];
 
   shellHook = ''

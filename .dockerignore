@@ -1,0 +1,8 @@
+*.nix
+Dockerfile
+LICENSE
+README.md
+flake.*
+nar-serve
+result
+start-dev
