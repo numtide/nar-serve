@@ -6,8 +6,8 @@ package main
 import (
 	"net/http"
 
+	unpack "github.com/numtide/nar-serve/api/unpack"
 	"github.com/urfave/negroni"
-	unpack "github.com/zimbatm/nar-serve/api/unpack"
 )
 
 const robotsTxt = `
@@ -64,7 +64,7 @@ const indexPage = `
 
 <hr>
 <p>
-Like this project? Star it on <a href="https://github.com/zimbatm/nar-serve">GitHub</a>.
+Like this project? Star it on <a href="https://github.com/numtide/nar-serve">GitHub</a>.
 
 <script>
 const storePathEl = document.getElementById("store-path");

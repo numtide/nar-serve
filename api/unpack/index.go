@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/numtide/go-nix/src/libstore"
+	"github.com/numtide/go-nix/src/nar"
 	"github.com/ulikunitz/xz"
-	"github.com/zimbatm/go-nix/src/libstore"
-	"github.com/zimbatm/go-nix/src/nar"
 )
 
 // MountPath is where this handler is supposed to be mounted

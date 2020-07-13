@@ -36,6 +36,6 @@ Eg:
 Contributions are welcome!
 
 Before adding any new feature it might be best to first discuss them by
-creating a new issue in https://github.com/zimbatm/nar-serve/issues .
+creating a new issue in https://github.com/numtide/nar-serve/issues .
 
 All code is licenses under the Apacke 2.0 license.
