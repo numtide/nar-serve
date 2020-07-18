@@ -18,8 +18,14 @@ import (
 // MountPath is where this handler is supposed to be mounted
 const MountPath = "/nix/store/"
 
-var nixCache = libstore.HTTPBinaryCacheStore{
-	CacheURI: getEnv("NAR_CACHE_URI", "https://cache.nixos.org"),
+var nixCache = mustBinaryCacheReader()
+
+func mustBinaryCacheReader() libstore.BinaryCacheReader {
+	r, err := libstore.NewBinaryCacheReader(getEnv("NAR_CACHE_URI", "https://cache.nixos.org"))
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
 
 // Handler is the entry-point for @now/go as well as the stub main.go net/http
