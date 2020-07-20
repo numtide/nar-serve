@@ -1,8 +1,6 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/numtide/go-nix v0.0.0-20200713124453-696d0813947d h1:lS+YIsnb1HEHusXgWJaJBaJlClgNKSUo8hjSm1oagkM=
-github.com/numtide/go-nix v0.0.0-20200713124453-696d0813947d/go.mod h1:qcEGUEASF8p5TFrKRwJB3jQff9m/h93VFILJZJzh8yY=
-github.com/numtide/go-nix v0.0.0-20200718210716-1aad02013acb h1:6wEQ5usaPtp/5R9IkugJcft+aMyfhgnxLBJL+9UOUZw=
-github.com/numtide/go-nix v0.0.0-20200718210716-1aad02013acb/go.mod h1:qcEGUEASF8p5TFrKRwJB3jQff9m/h93VFILJZJzh8yY=
+github.com/numtide/go-nix v0.0.0-20200720093503-13c5755c8417 h1:MOPPOXh1q/qHJU2XQZ14vyGbSsx6IGoKdSpx0DsFKSg=
+github.com/numtide/go-nix v0.0.0-20200720093503-13c5755c8417/go.mod h1:qcEGUEASF8p5TFrKRwJB3jQff9m/h93VFILJZJzh8yY=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=

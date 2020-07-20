@@ -183,7 +183,7 @@ func getEnv(name, def string) string {
 // TODO: consider keeping a LRU cache
 func getNarInfo(key string) (*libstore.NarInfo, error) {
 	path := fmt.Sprintf("%s.narinfo", key)
-	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.CacheURI)
+	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.URI())
 	r, err := nixCache.GetFile(path)
 	if err != nil {
 		return nil, err
