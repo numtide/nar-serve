@@ -4,12 +4,21 @@
   inputs.flake-utils.url = "github:numtide/flake-utils";
 
   outputs = { self, nixpkgs, flake-utils }:
+    {
+      overlay = import ./overlay.nix;
+    }
+    //
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = nixpkgs.legacyPackages.${system}; in
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ self.overlay ];
+        };
+      in
       rec {
-        packages.nar-serve = import ./. { inherit pkgs; };
-        defaultPackage = packages.nar-serve;
-        apps.nar-serve = flake-utils.lib.mkApp { drv = packages.nar-serve; };
+        packages.nar-serve = pkgs.nar-serve;
+        defaultPackage = pkgs.nar-serve;
+        apps.nar-serve = flake-utils.lib.mkApp { drv = pkgs.nar-serve; };
         defaultApp = apps.nar-serve;
         devShell = import ./shell.nix { inherit pkgs; };
       }
