@@ -2,6 +2,7 @@ package handler
 
 import (
 	"compress/bzip2"
+	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -21,7 +22,7 @@ const MountPath = "/nix/store/"
 var nixCache = mustBinaryCacheReader()
 
 func mustBinaryCacheReader() libstore.BinaryCacheReader {
-	r, err := libstore.NewBinaryCacheReader(getEnv("NAR_CACHE_URI", "https://cache.nixos.org"))
+	r, err := libstore.NewBinaryCacheReader(context.Background(), getEnv("NAR_CACHE_URI", "https://cache.nixos.org"))
 	if err != nil {
 		panic(err)
 	}
@@ -30,6 +31,7 @@ func mustBinaryCacheReader() libstore.BinaryCacheReader {
 
 // Handler is the entry-point for @now/go as well as the stub main.go net/http
 func Handler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
 	// remove the mount path from the path
 	path := strings.TrimPrefix(req.URL.Path, MountPath)
 	// ignore trailing slashes
@@ -47,7 +49,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	narName := strings.Split(narDir, "-")[0]
 
 	// Get the NAR info to find the NAR
-	narinfo, err := getNarInfo(narName)
+	narinfo, err := getNarInfo(ctx, narName)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -57,7 +59,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	// TODO: consider keeping a LRU cache
 	narPATH := narinfo.URL
 	fmt.Println("fetching the NAR:", narPATH)
-	file, err := nixCache.GetFile(narPATH)
+	file, err := nixCache.GetFile(ctx, narPATH)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -181,10 +183,10 @@ func getEnv(name, def string) string {
 }
 
 // TODO: consider keeping a LRU cache
-func getNarInfo(key string) (*libstore.NarInfo, error) {
+func getNarInfo(ctx context.Context, key string) (*libstore.NarInfo, error) {
 	path := fmt.Sprintf("%s.narinfo", key)
-	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.URI())
-	r, err := nixCache.GetFile(path)
+	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.URL())
+	r, err := nixCache.GetFile(ctx, path)
 	if err != nil {
 		return nil, err
 	}
