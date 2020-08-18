@@ -22,7 +22,7 @@ const MountPath = "/nix/store/"
 var nixCache = mustBinaryCacheReader()
 
 func mustBinaryCacheReader() libstore.BinaryCacheReader {
-	r, err := libstore.NewBinaryCacheReader(context.Background(), getEnv("NAR_CACHE_URI", "https://cache.nixos.org"))
+	r, err := libstore.NewBinaryCacheReader(context.Background(), getEnv("NAR_CACHE_URL", "https://cache.nixos.org"))
 	if err != nil {
 		panic(err)
 	}

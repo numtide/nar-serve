@@ -5,6 +5,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	unpack "github.com/numtide/nar-serve/api/unpack"
 	"github.com/urfave/negroni"
@@ -97,6 +98,13 @@ func main() {
 	mux.HandleFunc("/robots.txt", robotsHandler)
 	mux.HandleFunc(unpack.MountPath, unpack.Handler)
 
+	var default_port string
+	if default_port = os.Getenv("PORT"); default_port != "" {
+		default_port = ":" + default_port
+	} else {
+		default_port = ":8383"
+	}
+
 	// Includes some default middlewares
 	// Serve static files from ./public
 	n := negroni.New(
@@ -104,5 +112,5 @@ func main() {
 		negroni.NewLogger(),
 	)
 	n.UseHandler(mux)
-	n.Run()
+	n.Run(default_port)
 }

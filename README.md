@@ -20,7 +20,9 @@ Inside the provided nix shell run:
 ./start-dev
 ```
 
-This will create a small local server with live reload that emulates now.sh
+This will create a small local server with live reload that emulates now.sh.
+
+Currently, the default port is 8383. You can change it by setting the `PORT` environment variable.
 
 ## Usage
 

@@ -3,5 +3,5 @@ pkgs.buildGoModule {
   pname = "nar-serve";
   version = "latest";
   src = pkgs.lib.cleanSource ./.;
-  vendorSha256 = "sha256-9uzP/BdpGM/tCcP7tKLY0Q/Qb+XY8kns3yhsnIXkMPI=";
+  vendorSha256 = "1wihwj2rqv18vzn4kwnqwmpx03yiv2ib9yy317nwy6392zyczv7n";
 }
