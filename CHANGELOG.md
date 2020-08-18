@@ -1,3 +1,10 @@
+
+0.2.0 / 2020-08-18
+==================
+
+  * Change default port to 8383 and NIX_CACHE_URI to NIX_CACHE_URL
+  * Update vendorSha256 value from base-64 to base-32
+
 0.1.0 / 2020-08-11
 ==================
 
