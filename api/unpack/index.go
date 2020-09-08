@@ -11,8 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/numtide/go-nix/src/libstore"
-	"github.com/numtide/go-nix/src/nar"
+	"github.com/numtide/nar-serve/go-nix/libstore"
+	"github.com/numtide/nar-serve/go-nix/nar"
+
 	"github.com/ulikunitz/xz"
 )
 

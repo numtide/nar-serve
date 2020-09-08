@@ -100,7 +100,7 @@ func main() {
 
 	var default_port string
 	if default_port = os.Getenv("PORT"); default_port != "" {
-		default_port = ":" + default_port
+		default_port = "0.0.0.0:" + default_port
 	} else {
 		default_port = ":8383"
 	}
