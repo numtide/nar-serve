@@ -1,82 +1,129 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/numtide/nar-serve/go-nix/libstore"
+	"github.com/stretchr/testify/assert"
 )
 
+func cmd(env []string, name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = env
+
+	return cmd
+}
+
 func TestHappyPath(t *testing.T) {
+	assert := assert.New(t)
 	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
 	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+	parentDir := os.TempDir()
+	env := append(os.Environ(),
+		"AWS_ACCESS_KEY_ID="+accessKeyID,
+		"AWS_SECRET_ACCESS_KEY="+secretAccessKey,
+		"MINIO_ACCESS_KEY="+accessKeyID,
+		"MINIO_SECRET_KEY="+secretAccessKey,
+		"MINIO_REGION_NAME=us-east-1",
+		"HOME="+parentDir,
+	)
 
-	dataDir, err := ioutil.TempDir("", "nar")
+	dataDir, err := ioutil.TempDir("", "nar-serve")
 	if err != nil {
-		panic(err)
+		t.Fatal("tmpdir error:", err)
 	}
 	defer os.RemoveAll(dataDir)
+	log.Println("datadir", dataDir)
 
-	minios := exec.Command("minio", "server", dataDir)
-	minios.Env = []string{
-		"MINIO_ACCESS_KEY=" + accessKeyID,
-		"MINIO_SECRET_KEY=" + secretAccessKey,
-	}
+	// Start the server
+	minios := cmd(env, "minio", "server", dataDir, "--config-dir", ".")
 	err = minios.Start()
 	if err != nil {
 		t.Fatal("minio error:", err)
 	}
-	t.Log("minio server:", minios.String())
+	defer func() {
+		minios.Process.Kill()
+		minios.Wait()
+	}()
+	log.Println("server:", minios.String())
 
-	defer minios.Process.Kill()
-
-	minioc := exec.Command("mc", "config", "host", "add", "mycloud", "http://127.0.0.1:9000", accessKeyID, secretAccessKey)
+	minioc := cmd(env, "mc", "config", "host", "add", "narcloud", "http://127.0.0.1:9000", accessKeyID, secretAccessKey, "--config-dir", ".", "--api", "s3v4")
 	err = minioc.Run()
 	if err != nil {
 		t.Fatal("mc error:", err)
 	}
-	t.Log("minio client:", minioc.String())
+	log.Println("minio client:", minioc.String())
 
-	minio_bucket := exec.Command("mc", "mb", "mycloud/nar")
+	minio_bucket := cmd(env, "mc", "mb", "narcloud/nsbucket")
 	err = minio_bucket.Run()
 	if err != nil {
 		t.Fatal("mc error:", err)
 	}
 
-	// // TODO: copy files into server with `nix copy`
-	nix_copy := exec.Command("nix", "copy", "--to", "s3://nar?region=eu-west-1&endpoint=127.0.0.1:9000&scheme=http", "/nix/store/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m-curl-7.71.1-bin")
+	t.Log("minio bucket:", minio_bucket.String())
+
+	nix_copy := cmd(env, "nix", "copy", "--to", "s3://nsbucket?region=us-east-1&endpoint=127.0.0.1:9000&scheme=http", "/nix/store/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m-curl-7.71.1-bin")
 	err = nix_copy.Run()
+	if err != nil {
+		t.Fatal("nix-copy error:", err)
+	}
+
+	t.Log("file has been copied to the bucket using nix copy command")
+
+	ctx := context.Background()
+
+	tmpfile := filepath.Join(dataDir, "nsbucket/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m.narinfo")
+	finfo, err := os.Stat(tmpfile)
+
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Fatal("File not exists")
+		} else {
+			t.Fatal("ERROR:", err)
+		}
+	}
+	t.Log("File exists:", finfo.Name())
+	content, err := ioutil.ReadFile(tmpfile)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-
 	// S3 binary cache storage
-	_, err_nar := libstore.NewBinaryCacheReader(ctx, "s3://nar?region=eu-west-1&endpoint=http://127.0.0.1:9000&scheme=http")
-	if err_nar != nil {
-		panic(err_nar)
+	r, err := libstore.NewBinaryCacheReader(ctx, "s3://nsbucket?region=us-east-1&endpoint=http://127.0.0.1:9000&scheme=http")
+	if err != nil {
+		t.Fatal("new binary cache error:", err)
 	}
 
-	// TODO: test this
-	// do fileexist then getfile
-	// 1. test get actual file
-	// 2. test the content
-	// read all the file, compare to the file.
-	// getobj, err := r.GetFile(ctx, "nix-cache-info")
+	os.Setenv("AWS_ACCESS_KEY_ID", accessKeyID)
+	os.Setenv("AWS_SECRET_ACCESS_KEY", secretAccessKey)
+	obj, err := r.GetFile(ctx, "irfa91bs2wfqyh2j9kl8m3rcg7h72w4m.narinfo")
+	if err != nil {
+		t.Fatal("get file error:", err)
+	}
 
-	// ok, err := r.FileExists(ctx, "nix-cache-info")
-	// if err != nil {
-	// 	// TODO: replace panic with t.Error
-	// 	panic(err)
-	// }
-	// if !ok {
-	// 	// TODO: replace panic with t.Error
-	// 	panic("NOT OK")
-	// }
+	obj_content, err_read := ioutil.ReadAll(obj)
+	if err_read != nil {
+		t.Fatal(err_read)
+	}
 
-	// // TODO: stop the server
+	same_content := bytes.Equal(content, obj_content)
+	assert.True(same_content, "The content is not the same")
+
+	is_exist, err := r.FileExists(ctx, "irfa91bs2wfqyh2j9kl8m3rcg7h72w4m.narinfo")
+	if err != nil {
+		t.Fatal("file exist error:", err)
+	}
+	assert.True(is_exist, "File is not existed")
+	// Stop the server
+	minios.Process.Kill()
 }

@@ -3,8 +3,10 @@ package libstore
 import (
 	"context"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
@@ -13,7 +15,7 @@ import (
 )
 
 type S3BinaryCacheStore struct {
-	url    *url.URL
+	url        *url.URL
 	BucketName string
 	Client     *s3.S3
 }
@@ -24,6 +26,11 @@ func NewS3BinaryCacheStore(u *url.URL) (*S3BinaryCacheStore, error) {
 	region := u.Query().Get("region")
 	endpoint := u.Query().Get("endpoint")
 	bucketName := u.Host
+	creds := credentials.NewChainCredentials(
+		[]credentials.Provider{
+			&credentials.EnvProvider{},
+			&credentials.SharedCredentialsProvider{},
+		})
 
 	var disableSSL bool
 	switch scheme {
@@ -43,6 +50,7 @@ func NewS3BinaryCacheStore(u *url.URL) (*S3BinaryCacheStore, error) {
 		Config: aws.Config{
 			Region:           aws.String(region),
 			Endpoint:         &endpoint,
+			Credentials:      creds,
 			DisableSSL:       aws.Bool(disableSSL),
 			S3ForcePathStyle: aws.Bool(true),
 		},
@@ -50,7 +58,7 @@ func NewS3BinaryCacheStore(u *url.URL) (*S3BinaryCacheStore, error) {
 
 	svc := s3.New(sess)
 	return &S3BinaryCacheStore{
-		url: u,
+		url:        u,
 		BucketName: bucketName,
 		Client:     svc,
 	}, nil
