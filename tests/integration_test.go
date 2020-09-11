@@ -57,7 +57,7 @@ func TestHappyPath(t *testing.T) {
 		minios.Wait()
 	}()
 
-	minioc := cmd(env, "mc", "config", "host", "add", "narcloud", "http://127.0.0.1:9000", accessKeyID, secretAccessKey, "--config-dir", ".", "--api", "s3v4")
+	minioc := cmd(env, "mc", "config", "host", "add", "narcloud", "http://127.0.0.1:9000", accessKeyID, secretAccessKey, "--config-dir", configDir, "--api", "s3v4")
 	err = minioc.Run()
 	if err != nil {
 		t.Fatal("mc error:", err)
