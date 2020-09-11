@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,25 +26,28 @@ func TestHappyPath(t *testing.T) {
 	assert := assert.New(t)
 	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
 	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-	parentDir := os.TempDir()
+
+	tempDir, err := ioutil.TempDir("", "nar-serve")
+	homeDir := tempDir + "/home"
+	configDir := tempDir + "/config"
+	dataDir := tempDir + "/data"
+
 	env := append(os.Environ(),
 		"AWS_ACCESS_KEY_ID="+accessKeyID,
 		"AWS_SECRET_ACCESS_KEY="+secretAccessKey,
 		"MINIO_ACCESS_KEY="+accessKeyID,
 		"MINIO_SECRET_KEY="+secretAccessKey,
 		"MINIO_REGION_NAME=us-east-1",
-		"HOME="+parentDir,
+		"HOME="+homeDir,
 	)
 
-	dataDir, err := ioutil.TempDir("", "nar-serve")
 	if err != nil {
 		t.Fatal("tmpdir error:", err)
 	}
-	defer os.RemoveAll(dataDir)
-	log.Println("datadir", dataDir)
+	defer os.RemoveAll(tempDir)
 
 	// Start the server
-	minios := cmd(env, "minio", "server", dataDir, "--config-dir", ".")
+	minios := cmd(env, "minio", "server", dataDir, "--config-dir", configDir)
 	err = minios.Start()
 	if err != nil {
 		t.Fatal("minio error:", err)
@@ -54,14 +56,12 @@ func TestHappyPath(t *testing.T) {
 		minios.Process.Kill()
 		minios.Wait()
 	}()
-	log.Println("server:", minios.String())
 
 	minioc := cmd(env, "mc", "config", "host", "add", "narcloud", "http://127.0.0.1:9000", accessKeyID, secretAccessKey, "--config-dir", ".", "--api", "s3v4")
 	err = minioc.Run()
 	if err != nil {
 		t.Fatal("mc error:", err)
 	}
-	log.Println("minio client:", minioc.String())
 
 	minio_bucket := cmd(env, "mc", "mb", "narcloud/nsbucket")
 	err = minio_bucket.Run()
@@ -69,20 +69,16 @@ func TestHappyPath(t *testing.T) {
 		t.Fatal("mc error:", err)
 	}
 
-	t.Log("minio bucket:", minio_bucket.String())
-
 	nix_copy := cmd(env, "nix", "copy", "--to", "s3://nsbucket?region=us-east-1&endpoint=127.0.0.1:9000&scheme=http", "/nix/store/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m-curl-7.71.1-bin")
 	err = nix_copy.Run()
 	if err != nil {
 		t.Fatal("nix-copy error:", err)
 	}
 
-	t.Log("file has been copied to the bucket using nix copy command")
-
 	ctx := context.Background()
 
 	tmpfile := filepath.Join(dataDir, "nsbucket/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m.narinfo")
-	finfo, err := os.Stat(tmpfile)
+	_, err = os.Stat(tmpfile)
 
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -91,7 +87,6 @@ func TestHappyPath(t *testing.T) {
 			t.Fatal("ERROR:", err)
 		}
 	}
-	t.Log("File exists:", finfo.Name())
 	content, err := ioutil.ReadFile(tmpfile)
 
 	if err != nil {
