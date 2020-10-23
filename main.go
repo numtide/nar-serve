@@ -98,11 +98,9 @@ func main() {
 	mux.HandleFunc("/robots.txt", robotsHandler)
 	mux.HandleFunc(unpack.MountPath, unpack.Handler)
 
-	var default_port string
-	if default_port = os.Getenv("PORT"); default_port != "" {
-		default_port = "" + default_port
-	} else {
-		default_port = ":8383"
+	addr := ":8383"
+	if port := os.Getenv("PORT"); port != "" {
+		addr = ":" + port
 	}
 
 	// Includes some default middlewares
@@ -112,5 +110,5 @@ func main() {
 		negroni.NewLogger(),
 	)
 	n.UseHandler(mux)
-	n.Run(default_port)
+	n.Run(addr)
 }
