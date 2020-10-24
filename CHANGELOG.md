@@ -1,4 +1,13 @@
 
+0.3.0 / 2020-10-24
+==================
+
+  * main: fix PORT to addr logic
+  * fix nix build
+  * Add integration tests for nar-serve (#13)
+  * Make nar-serve and go-nix monorepo (#12)
+  * ci: no need to pull dependencies
+
 0.2.0 / 2020-08-18
 ==================
 
