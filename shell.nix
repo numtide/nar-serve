@@ -1,16 +1,18 @@
-{ pkgs ? import <nixpkgs> { } }:
-pkgs.mkShell {
+{ system ? builtins.currentSystem
+, nixpkgs ? import <nixpkgs> { inherit system; }
+}:
+nixpkgs.mkShell {
   buildInputs = [
-    pkgs.go
-    pkgs.gopls
-    pkgs.gopkgs
-    pkgs.gocode
-    pkgs.go-outline
-    pkgs.minio
-    pkgs.minio-client
-    pkgs.reflex
-    pkgs.awscli
-    pkgs.google-cloud-sdk
+    nixpkgs.go
+    nixpkgs.gopls
+    nixpkgs.gopkgs
+    nixpkgs.gocode
+    nixpkgs.go-outline
+    nixpkgs.minio
+    nixpkgs.minio-client
+    nixpkgs.reflex
+    nixpkgs.awscli
+    nixpkgs.google-cloud-sdk
   ];
 
   shellHook = ''

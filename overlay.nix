@@ -1,3 +1,3 @@
 final: prev: {
-  nar_serve = import ./. { pkgs = prev; };
+  nar-serve = import ./. { nixpkgs = final; };
 }
