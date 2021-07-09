@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/numtide/nar-serve/go-nix/libstore"
+	"github.com/numtide/nar-serve/libstore"
 	"github.com/stretchr/testify/assert"
 )
 
