@@ -1,4 +1,13 @@
 
+0.4.0 / 2021-07-16
+==================
+
+  * fix build
+  * use the go-nix library again
+  * bump dependencies
+  * deploy: add AWS apprunner example
+  * add support for local directory as a backend (#14)
+
 0.3.0 / 2020-10-24
 ==================
 
