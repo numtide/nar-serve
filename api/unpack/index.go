@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/numtide/go-nix/nar"
+	"github.com/numtide/go-nix/nar/narinfo"
 	"github.com/numtide/nar-serve/libstore"
 
 	"github.com/ulikunitz/xz"
@@ -184,7 +185,7 @@ func getEnv(name, def string) string {
 }
 
 // TODO: consider keeping a LRU cache
-func getNarInfo(ctx context.Context, key string) (*libstore.NarInfo, error) {
+func getNarInfo(ctx context.Context, key string) (*narinfo.NarInfo, error) {
 	path := fmt.Sprintf("%s.narinfo", key)
 	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.URL())
 	r, err := nixCache.GetFile(ctx, path)
@@ -192,10 +193,14 @@ func getNarInfo(ctx context.Context, key string) (*libstore.NarInfo, error) {
 		return nil, err
 	}
 	defer r.Close()
-	return libstore.ParseNarInfo(r)
+	ni, err := narinfo.Parse(r)
+	if err != nil {
+		return nil, err
+	}
+	return ni, err
 }
 
-func absSymlink(narinfo *libstore.NarInfo, hdr *nar.Header) string {
+func absSymlink(narinfo *narinfo.NarInfo, hdr *nar.Header) string {
 	if filepath.IsAbs(hdr.Linkname) {
 		return hdr.Linkname
 	}
