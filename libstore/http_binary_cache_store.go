@@ -9,6 +9,8 @@ import (
 	"path"
 )
 
+var _ BinaryCacheReader = HTTPBinaryCacheStore{}
+
 // HTTPBinaryCacheStore ...
 type HTTPBinaryCacheStore struct {
 	url *url.URL // assumes the URI doesn't end with '/'
