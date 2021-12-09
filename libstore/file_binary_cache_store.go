@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var _ BinaryCacheReader = FileBinaryCacheStore{}
+
 type FileBinaryCacheStore struct {
 	path string
 }

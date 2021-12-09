@@ -9,6 +9,8 @@ import (
 	"cloud.google.com/go/storage"
 )
 
+var _ BinaryCacheReader = GCSBinaryCacheStore{}
+
 // GCSBinaryCacheStore ...
 type GCSBinaryCacheStore struct {
 	url    *url.URL
