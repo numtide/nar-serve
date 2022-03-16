@@ -7,9 +7,8 @@ require (
 	cloud.google.com/go/iam v0.1.0 // indirect
 	cloud.google.com/go/storage v1.18.2
 	github.com/aws/aws-sdk-go v1.42.34
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/numtide/go-nix v0.0.0-20211215191921-37a8ad2f9e4f
+	github.com/nix-community/go-nix v0.0.0-20220316150926-3545e7c84bb2
 	github.com/stretchr/testify v1.7.0
 	github.com/ulikunitz/xz v0.5.10
 	github.com/urfave/negroni v1.0.0

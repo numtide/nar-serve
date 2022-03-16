@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/numtide/go-nix/nar"
-	"github.com/numtide/go-nix/nar/narinfo"
+	"github.com/nix-community/go-nix/pkg/nar"
+	"github.com/nix-community/go-nix/pkg/nar/narinfo"
 	"github.com/numtide/nar-serve/libstore"
 
 	"github.com/ulikunitz/xz"
@@ -88,7 +88,12 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 
 	// TODO: try to load .ls files to speed-up the file lookups
 
-	narReader := nar.NewReader(r)
+	narReader, err := nar.NewReader(r)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
 	newPath := strings.Join(components[1:], "/")
 
 	fmt.Println("newPath", newPath)
@@ -105,11 +110,11 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		}
 
 		// we've got a match!
-		if hdr.Name == newPath {
+		if hdr.Path == newPath {
 			switch hdr.Type {
 			case nar.TypeDirectory:
 				w.Header().Set("Content-Type", "text/html")
-				fmt.Fprintf(w, "<p>%s is a directory:</p><ol>", hdr.Name)
+				fmt.Fprintf(w, "<p>%s is a directory:</p><ol>", hdr.Path)
 				flush(w)
 				for {
 					hdr2, err := narReader.Next()
@@ -121,23 +126,23 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 						}
 					}
 
-					if !strings.HasPrefix(hdr2.Name, hdr.Name) {
+					if !strings.HasPrefix(hdr2.Path, hdr.Path) {
 						break
 					}
 
 					var label string
 					switch hdr2.Type {
 					case nar.TypeDirectory:
-						label = hdr2.Name + "/"
+						label = hdr2.Path + "/"
 					case nar.TypeSymlink:
-						label = hdr2.Name + " -> " + absSymlink(narinfo, hdr2)
+						label = hdr2.Path + " -> " + absSymlink(narinfo, hdr2)
 					case nar.TypeRegular:
-						label = hdr2.Name
+						label = hdr2.Path
 					default:
 						http.Error(w, fmt.Sprintf("BUG: unknown NAR header type: %s", hdr.Type), 500)
 					}
 
-					fmt.Fprintf(w, "<li><a href='%s'>%s</a></li>", filepath.Join(narinfo.StorePath, hdr2.Name), label)
+					fmt.Fprintf(w, "<li><a href='%s'>%s</a></li>", filepath.Join(narinfo.StorePath, hdr2.Path), label)
 					flush(w)
 				}
 			case nar.TypeSymlink:
@@ -153,7 +158,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			case nar.TypeRegular:
 				// TODO: ETag header matching. Use the NAR file name as the ETag
 				// TODO: expose the executable flag somehow?
-				ctype := mime.TypeByExtension(filepath.Ext(hdr.Name))
+				ctype := mime.TypeByExtension(filepath.Ext(hdr.Path))
 				if ctype == "" {
 					ctype = "application/octet-stream"
 					// TODO: use http.DetectContentType as a fallback
@@ -201,11 +206,11 @@ func getNarInfo(ctx context.Context, key string) (*narinfo.NarInfo, error) {
 }
 
 func absSymlink(narinfo *narinfo.NarInfo, hdr *nar.Header) string {
-	if filepath.IsAbs(hdr.Linkname) {
-		return hdr.Linkname
+	if filepath.IsAbs(hdr.LinkTarget) {
+		return hdr.LinkTarget
 	}
 
-	return filepath.Join(narinfo.StorePath, filepath.Dir(hdr.Name), hdr.Linkname)
+	return filepath.Join(narinfo.StorePath, filepath.Dir(hdr.Path), hdr.LinkTarget)
 }
 
 func flush(rw http.ResponseWriter) {
