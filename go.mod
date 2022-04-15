@@ -3,20 +3,19 @@ module github.com/numtide/nar-serve
 go 1.14
 
 require (
-	cloud.google.com/go/compute v1.0.0 // indirect
-	cloud.google.com/go/iam v0.1.0 // indirect
-	cloud.google.com/go/storage v1.18.2
-	github.com/aws/aws-sdk-go v1.42.34
+	cloud.google.com/go/compute v1.6.0 // indirect
+	cloud.google.com/go/storage v1.22.0
+	github.com/aws/aws-sdk-go v1.43.40
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/nix-community/go-nix v0.0.0-20220316150926-3545e7c84bb2
+	github.com/nix-community/go-nix v0.0.0-20220321204606-c1ff468caf83
 	github.com/stretchr/testify v1.7.0
 	github.com/ulikunitz/xz v0.5.10
 	github.com/urfave/negroni v1.0.0
-	golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d // indirect
-	golang.org/x/sys v0.0.0-20220111092808-5a964db01320 // indirect
+	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
+	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/api v0.65.0 // indirect
-	google.golang.org/genproto v0.0.0-20220112215332-a9c7c0acf9f2 // indirect
-	google.golang.org/grpc v1.43.0 // indirect
+	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
+	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
