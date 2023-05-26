@@ -94,7 +94,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	newPath := strings.Join(components[1:], "/")
+	newPath := "/" + strings.Join(components[1:], "/")
 
 	fmt.Println("newPath", newPath)
 
