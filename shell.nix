@@ -2,18 +2,18 @@
 , nixpkgs ? import <nixpkgs> { inherit system; }
 }:
 nixpkgs.mkShell {
-  buildInputs = [
-    nixpkgs.go
-    nixpkgs.go-outline
-    nixpkgs.gocode
-    nixpkgs.gopkgs
-    nixpkgs.gopls
-    nixpkgs.goreleaser
-    nixpkgs.minio
-    nixpkgs.minio-client
-    nixpkgs.reflex
-    nixpkgs.awscli
-    nixpkgs.google-cloud-sdk
+  buildInputs = with nixpkgs; [
+    go
+    go-outline
+    gopkgs
+    gopls
+    goreleaser
+    golangci-lint
+    minio
+    minio-client
+    reflex
+    awscli
+    google-cloud-sdk
   ];
 
   shellHook = ''

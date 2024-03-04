@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/nix-community/go-nix/pkg/nar"
-	"github.com/nix-community/go-nix/pkg/nar/narinfo"
+	"github.com/nix-community/go-nix/pkg/narinfo"
 	"github.com/numtide/nar-serve/libstore"
 
 	"github.com/ulikunitz/xz"
