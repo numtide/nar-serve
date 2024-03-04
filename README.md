@@ -16,7 +16,7 @@ unpack and serve any file in the cache on the fly.
 
 Inside the provided nix shell run:
 
-```
+```shell
 ./start-dev
 ```
 
@@ -26,12 +26,26 @@ Currently, the default port is 8383. You can change it by setting the `PORT` env
 
 ## Usage
 
+Store contents can be fetched via a simple HTTP GET request.
+
 Append any store path to the hostname to fetch and unpack it on
 the fly. That's it.
 
-Eg:
+E.g.:
 
 * https://nar-serve.zimbatm.now.sh/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
+
+NAR archives also contain information about the executable bit for each contained file.
+nar-serve uses a custom HTTP header named `NAR-executable` to indicate whether the fetched file would be executable.
+
+## Configuration
+
+You can use the following environment variables to configure nar-serve:
+
+| Name | Default value | Description |
+|:--   |:--            |:-- |
+| `PORT` | `8383` | Port number on which nar-service listens |
+| `NAR_CACHE_URL` | `https://cache.nixos.org` | The URL of the Nix store from which NARs are fetched |
 
 ## Contributing
 
@@ -40,4 +54,4 @@ Contributions are welcome!
 Before adding any new feature it might be best to first discuss them by
 creating a new issue in https://github.com/numtide/nar-serve/issues .
 
-All code is licenses under the Apache 2.0 license.
+All code is licensed under the Apache 2.0 license.

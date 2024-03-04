@@ -164,6 +164,10 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 					// TODO: use http.DetectContentType as a fallback
 				}
 
+				if hdr.Executable {
+					w.Header().Set("NAR-Executable", "1")
+				}
+
 				w.Header().Set("Cache-Control", "immutable")
 				w.Header().Set("Content-Type", ctype)
 				w.Header().Set("Content-Length", fmt.Sprintf("%d", hdr.Size))
