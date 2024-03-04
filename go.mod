@@ -1,6 +1,6 @@
 module github.com/numtide/nar-serve
 
-go 1.14
+go 1.16
 
 require (
 	cloud.google.com/go/compute v1.6.0 // indirect
