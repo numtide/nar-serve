@@ -1,4 +1,4 @@
-# nar-serve - serve NAR file content
+# nar-serve - Serve NAR file content directly from cache
 
 Push your build artifacts to one place.
 
@@ -16,7 +16,7 @@ unpack and serve any file in the cache on the fly.
 
 Inside the provided nix shell run:
 
-```
+```shell
 ./start-dev
 ```
 
