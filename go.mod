@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.50.30
 	github.com/nix-community/go-nix v0.0.0-20231219074122-93cb24a86856
 	github.com/stretchr/testify v1.9.0
-	github.com/ulikunitz/xz v0.5.11
+	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/negroni v1.0.0
 )
 
