@@ -25,5 +25,7 @@
       devShells = eachSystem (pkgs: {
         default = self.packages.${pkgs.system}.devShell;
       });
+
+      checks = self.packages;
     };
 }
