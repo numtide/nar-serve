@@ -1,5 +1,6 @@
-{ system ? builtins.currentSystem
-, nixpkgs ? import <nixpkgs> { inherit system; }
+{
+  system ? builtins.currentSystem,
+  nixpkgs ? import <nixpkgs> { inherit system; },
 }:
 nixpkgs.mkShell {
   buildInputs = with nixpkgs; [
