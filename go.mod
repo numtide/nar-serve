@@ -11,6 +11,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/negroni v1.0.0
+	github.com/urfave/negroni/v3 v3.1.1
 )
 
 require (
