@@ -16,6 +16,7 @@ import (
 	"github.com/numtide/nar-serve/pkg/narinfo"
 
 	"github.com/ulikunitz/xz"
+	"github.com/klauspost/compress/zstd"
 )
 
 // MountPath is where this handler is supposed to be mounted
@@ -81,6 +82,12 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		}
 	case "bzip2":
 		r = bzip2.NewReader(r)
+	case "zstd":
+		r, err = zstd.NewReader(r)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 	default:
 		http.Error(w, fmt.Sprintf("compression %s not handled", narinfo.Compression), 500)
 		return
