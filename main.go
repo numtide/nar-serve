@@ -31,16 +31,20 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	var (
+		port = getEnv("PORT", "8383")
+		addr = getEnv("HTTP_ADDR", "")
+	)
+
+	if addr == "" {
+		addr = ":" + port
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", indexHandler)
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/robots.txt", robotsHandler)
 	mux.HandleFunc(unpack.MountPath, unpack.Handler)
-
-	addr := ":8383"
-	if port := os.Getenv("PORT"); port != "" {
-		addr = ":" + port
-	}
 
 	// Includes some default middlewares
 	// Serve static files from ./public
@@ -51,3 +55,12 @@ func main() {
 	n.UseHandler(mux)
 	n.Run(addr)
 }
+
+func getEnv(name, def string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		return def
+	}
+	return value
+}
+
