@@ -41,7 +41,7 @@ resource "aws_apprunner_service" "nar_serve" {
       image_configuration {
         port = "8383"
         runtime_environment_variables = {
-          NAR_CACHE_URL = var.cache_url
+          NIX_CACHE_URL = var.cache_url
         }
       }
       image_identifier      = "${aws_ecr_repository.nar_serve.repository_url}:${var.image_tag}"

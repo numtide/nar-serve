@@ -1,32 +1,31 @@
 package main
 
 import (
-	"embed"
-	"io"
+	"context"
 	"log"
+	_ "embed"
 	"net/http"
+	"text/template"
 	"os"
 
+	"github.com/numtide/nar-serve/pkg/libstore"
 	"github.com/numtide/nar-serve/api/unpack"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-//go:embed views/*
-var viewsFS embed.FS
+//go:embed views/index.html
+var indexHTML string
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	f, _ := viewsFS.Open("views/index.html")
-	_, _ = io.Copy(w, f)
-}
+var indexHTMLTmpl = template.Must(template.New("index.html").Parse(indexHTML))
+
+//go:embed views/robots.txt
+var robotsTXT []byte
 
 func robotsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
-	f, _ := viewsFS.Open("views/robots.txt")
-	_, _ = io.Copy(w, f)
-	f.Close()
+	_, _ = w.Write(robotsTXT)
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,13 +34,22 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var (
-		port = getEnv("PORT", "8383")
-		addr = getEnv("HTTP_ADDR", "")
+		port        = getEnv("PORT", "8383")
+		addr        = getEnv("HTTP_ADDR", "")
+		nixCacheURL = getEnv("NIX_CACHE_URL", getEnv("NAR_CACHE_URL", "https://cache.nixos.org"))
 	)
 
 	if addr == "" {
 		addr = ":" + port
 	}
+
+	cache, err := libstore.NewBinaryCacheReader(context.Background(), nixCacheURL)
+	if err != nil {
+		panic(err)
+	}
+
+	// FIXME: get the mountPath from the binary cache /nix-cache-info file
+	h := unpack.NewHandler(cache, "/nix/store/")
 
 	r := chi.NewRouter()
 
@@ -51,11 +59,20 @@ func main() {
 	r.Use(middleware.CleanPath)
 	r.Use(middleware.GetHead)
 
-	r.Get("/", indexHandler)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		data := struct {
+			NixCacheURL string
+		}{ nixCacheURL }
+
+		if err := indexHTMLTmpl.Execute(w, data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
 	r.Get("/healthz", healthzHandler)
 	r.Get("/robots.txt", robotsHandler)
-	r.Get(unpack.MountPath+"*", unpack.Handler)
+	r.Method("GET", h.MountPath()+"*", h)
 
+	log.Println("nixCacheURL=", nixCacheURL)
 	log.Println("addr=", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
