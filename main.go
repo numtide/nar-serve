@@ -54,7 +54,7 @@ func main() {
 	r.Get("/", indexHandler)
 	r.Get("/healthz", healthzHandler)
 	r.Get("/robots.txt", robotsHandler)
-	r.Get(unpack.MountPath, unpack.Handler)
+	r.Get(unpack.MountPath+"*", unpack.Handler)
 
 	log.Println("addr=", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
