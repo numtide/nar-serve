@@ -22,7 +22,8 @@ Inside the provided nix shell run:
 
 This will create a small local server with live reload that emulates now.sh.
 
-Currently, the default port is 8383. You can change it by setting the `PORT` environment variable.
+Currently, the default port is 8383. You can change it by setting the `PORT`
+environment variable, or `HTTP_ADDR` to also change the bind address.
 
 ## Usage
 
@@ -33,7 +34,7 @@ the fly. That's it.
 
 E.g.:
 
-* https://nar-serve.zimbatm.now.sh/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
+* https://serve.ntd.one/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
 
 NAR archives also contain information about the executable bit for each contained file.
 nar-serve uses a custom HTTP header named `NAR-executable` to indicate whether the fetched file would be executable.
@@ -45,6 +46,7 @@ You can use the following environment variables to configure nar-serve:
 | Name | Default value | Description |
 |:--   |:--            |:-- |
 | `PORT` | `8383` | Port number on which nar-service listens |
+| `HTTP_ADDR` | `:$PORT` | HTTP address to bind the server to. When set, takes precedence over $PORT. |
 | `NAR_CACHE_URL` | `https://cache.nixos.org` | The URL of the Nix store from which NARs are fetched |
 
 ## Contributing
