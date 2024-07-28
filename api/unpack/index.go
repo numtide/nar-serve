@@ -1,4 +1,4 @@
-package handler
+package unpack
 
 import (
 	"compress/bzip2"

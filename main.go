@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	unpack "github.com/numtide/nar-serve/api/unpack"
+	"github.com/numtide/nar-serve/api/unpack"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
