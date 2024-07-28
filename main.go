@@ -2,12 +2,15 @@ package main
 
 import (
 	"embed"
-	"net/http"
 	"io"
+	"log"
+	"net/http"
 	"os"
 
-	unpack "github.com/numtide/nar-serve/api/unpack"
-	"github.com/urfave/negroni"
+	"github.com/numtide/nar-serve/api/unpack"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 //go:embed views/*
@@ -40,20 +43,21 @@ func main() {
 		addr = ":" + port
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", indexHandler)
-	mux.HandleFunc("/healthz", healthzHandler)
-	mux.HandleFunc("/robots.txt", robotsHandler)
-	mux.HandleFunc(unpack.MountPath, unpack.Handler)
+	r := chi.NewRouter()
 
-	// Includes some default middlewares
-	// Serve static files from ./public
-	n := negroni.New(
-		negroni.NewRecovery(),
-		negroni.NewLogger(),
-	)
-	n.UseHandler(mux)
-	n.Run(addr)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.CleanPath)
+	r.Use(middleware.GetHead)
+
+	r.Get("/", indexHandler)
+	r.Get("/healthz", healthzHandler)
+	r.Get("/robots.txt", robotsHandler)
+	r.Get(unpack.MountPath, unpack.Handler)
+
+	log.Println("addr=", addr)
+	log.Fatal(http.ListenAndServe(addr, r))
 }
 
 func getEnv(name, def string) string {
@@ -63,4 +67,3 @@ func getEnv(name, def string) string {
 	}
 	return value
 }
-

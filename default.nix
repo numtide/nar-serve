@@ -7,7 +7,7 @@ rec {
     pname = "nar-serve";
     version = "latest";
     src = nixpkgs.lib.cleanSource ./.;
-    vendorHash = "sha256-IfXhuVwZf43FcQQ+i77aJHWG0auHBaHnKgTQJKa0L/M=";
+    vendorHash = "sha256-hi0KK+TQ3JG6LSMy8wnLDBRnTCwlfwo3ru22sbgX7dc=";
     doCheck = false;
   };
 
