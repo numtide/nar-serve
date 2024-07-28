@@ -33,7 +33,7 @@ the fly. That's it.
 
 E.g.:
 
-* https://nar-serve.zimbatm.now.sh/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
+* https://serve.ntd.one/nix/store/barxv95b8arrlh97s6axj8k7ljn7aky1-go-1.12/share/go/doc/effective_go.html
 
 NAR archives also contain information about the executable bit for each contained file.
 nar-serve uses a custom HTTP header named `NAR-executable` to indicate whether the fetched file would be executable.

@@ -1,8 +1,0 @@
-*
-!go.mod
-!go.sum
-!api
-!api/*
-!api/*/*.go
-!public
-!public/*

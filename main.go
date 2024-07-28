@@ -1,8 +1,5 @@
 package main
 
-// this file is being used for local development. It reproduces more
-// or less the behaviour of now.sh but all compiled into a single binary.
-
 import (
 	"net/http"
 	"os"
