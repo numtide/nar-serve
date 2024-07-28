@@ -7,7 +7,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,28 +14,32 @@ import (
 	"github.com/numtide/nar-serve/pkg/nar"
 	"github.com/numtide/nar-serve/pkg/narinfo"
 
-	"github.com/ulikunitz/xz"
 	"github.com/klauspost/compress/zstd"
+	"github.com/ulikunitz/xz"
 )
 
-// MountPath is where this handler is supposed to be mounted
-const MountPath = "/nix/store/"
+type Handler struct {
+	cache     libstore.BinaryCacheReader
+	mountPath string
+}
 
-var nixCache = mustBinaryCacheReader()
-
-func mustBinaryCacheReader() libstore.BinaryCacheReader {
-	r, err := libstore.NewBinaryCacheReader(context.Background(), getEnv("NAR_CACHE_URL", "https://cache.nixos.org"))
-	if err != nil {
-		panic(err)
+func NewHandler(cache libstore.BinaryCacheReader, mountPath string) *Handler {
+	return &Handler{
+		cache:     cache,
+		mountPath: mountPath,
 	}
-	return r
+}
+
+// MountPath is where this handler is supposed to be mounted
+func (h *Handler) MountPath() string {
+	return h.mountPath
 }
 
 // Handler is the entry-point for @now/go as well as the stub main.go net/http
-func Handler(w http.ResponseWriter, req *http.Request) {
+func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	// remove the mount path from the path
-	path := strings.TrimPrefix(req.URL.Path, MountPath)
+	path := strings.TrimPrefix(req.URL.Path, h.mountPath)
 	// ignore trailing slashes
 	path = strings.TrimRight(path, "/")
 
@@ -52,7 +55,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	narName := strings.Split(narDir, "-")[0]
 
 	// Get the NAR info to find the NAR
-	narinfo, err := getNarInfo(ctx, narName)
+	narinfo, err := getNarInfo(ctx, h.cache, narName)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -62,7 +65,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	// TODO: consider keeping a LRU cache
 	narPATH := narinfo.URL
 	fmt.Println("fetching the NAR:", narPATH)
-	file, err := nixCache.GetFile(ctx, narPATH)
+	file, err := h.cache.GetFile(ctx, narPATH)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -157,7 +160,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 
 				// Make sure the symlink is absolute
 
-				if !strings.HasPrefix(redirectPath, MountPath) {
+				if !strings.HasPrefix(redirectPath, h.mountPath) {
 					fmt.Fprintf(w, "found symlink out of store: %s\n", redirectPath)
 				} else {
 					http.Redirect(w, req, redirectPath, http.StatusMovedPermanently)
@@ -179,7 +182,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 				w.Header().Set("Content-Type", ctype)
 				w.Header().Set("Content-Length", fmt.Sprintf("%d", hdr.Size))
 				if req.Method != "HEAD" {
-					io.CopyN(w, narReader, hdr.Size)
+					_, _ = io.CopyN(w, narReader, hdr.Size)
 				}
 			default:
 				http.Error(w, fmt.Sprintf("BUG: unknown NAR header type: %s", hdr.Type), 500)
@@ -192,16 +195,8 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func getEnv(name, def string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		return def
-	}
-	return value
-}
-
 // TODO: consider keeping a LRU cache
-func getNarInfo(ctx context.Context, key string) (*narinfo.NarInfo, error) {
+func getNarInfo(ctx context.Context, nixCache libstore.BinaryCacheReader, key string) (*narinfo.NarInfo, error) {
 	path := fmt.Sprintf("%s.narinfo", key)
 	fmt.Println("Fetching the narinfo:", path, "from:", nixCache.URL())
 	r, err := nixCache.GetFile(ctx, path)

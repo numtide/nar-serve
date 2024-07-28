@@ -2,11 +2,13 @@ package main
 
 import (
 	"embed"
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/numtide/nar-serve/pkg/libstore"
 	"github.com/numtide/nar-serve/api/unpack"
 
 	"github.com/go-chi/chi/v5"
@@ -35,13 +37,22 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var (
-		port = getEnv("PORT", "8383")
-		addr = getEnv("HTTP_ADDR", "")
+		port        = getEnv("PORT", "8383")
+		addr        = getEnv("HTTP_ADDR", "")
+		nixCacheURL = getEnv("NAR_CACHE_URL", "https://cache.nixos.org")
 	)
 
 	if addr == "" {
 		addr = ":" + port
 	}
+
+	cache, err := libstore.NewBinaryCacheReader(context.Background(), nixCacheURL)
+	if err != nil {
+		panic(err)
+	}
+
+	// FIXME: get the mountPath from the binary cache /nix-cache-info file
+	h := unpack.NewHandler(cache, "/nix/store/")
 
 	r := chi.NewRouter()
 
@@ -54,7 +65,7 @@ func main() {
 	r.Get("/", indexHandler)
 	r.Get("/healthz", healthzHandler)
 	r.Get("/robots.txt", robotsHandler)
-	r.Get(unpack.MountPath+"*", unpack.Handler)
+	r.Method("GET", h.MountPath()+"*", h)
 
 	log.Println("addr=", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
