@@ -4,6 +4,7 @@ import (
 	"compress/bzip2"
 	"context"
 	"fmt"
+	"log"
 	"io"
 	"mime"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/numtide/nar-serve/pkg/nar"
 	"github.com/numtide/nar-serve/pkg/narinfo"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
@@ -37,34 +39,44 @@ func (h *Handler) MountPath() string {
 
 // Handler is the entry-point for @now/go as well as the stub main.go net/http
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := req.Context()
-	// remove the mount path from the path
-	path := strings.TrimPrefix(req.URL.Path, h.mountPath)
-	// ignore trailing slashes
-	path = strings.TrimRight(path, "/")
-
-	components := strings.Split(path, "/")
-	if len(components) == 0 {
+	narDir := chi.URLParam(req, "narDir")
+	if narDir == "" {
 		w.Header().Set("Content-Type", "text/plain")
 		http.Error(w, "store path missing", 404)
 		return
 	}
-	fmt.Println(len(components), components)
 
-	narDir := components[0]
-	narName := strings.Split(narDir, "-")[0]
+	narHash := strings.Split(narDir, "-")[0]
+
+	h.ServeNAR(narHash, w, req)
+}
+
+func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	log.Println("narHash=", narHash)
+
+	// Do some path cleanup
+	// ignore trailing slashes
+	newPath := strings.TrimRight(req.URL.Path, "/")
+	// remove the mount path and nar hash from the path
+	if strings.HasPrefix(newPath, h.mountPath) {
+		components := strings.Split(newPath, "/")
+		newPath = strings.Join(components[4:], "/")
+	}
+	newPath = "/" + strings.TrimLeft(newPath, "/")
+	log.Println("newPath=", newPath)
 
 	// Get the NAR info to find the NAR
-	narinfo, err := getNarInfo(ctx, h.cache, narName)
+	narinfo, err := getNarInfo(ctx, h.cache, narHash)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	fmt.Println("narinfo", narinfo)
 
 	// TODO: consider keeping a LRU cache
 	narPATH := narinfo.URL
-	fmt.Println("fetching the NAR:", narPATH)
+	log.Println("fetching the NAR:", narPATH)
 	file, err := h.cache.GetFile(ctx, narPATH)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -103,10 +115,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-
-	newPath := "/" + strings.Join(components[1:], "/")
-
-	fmt.Println("newPath", newPath)
 
 	for {
 		hdr, err := narReader.Next()
