@@ -1,4 +1,14 @@
 
+0.7.0 / 2024-07-31
+==================
+
+  * feat: allow mapping hashes to subdomains (#48)
+  * feat: show to which cache the server is bound
+  * feat: add HTTP_ADDR env var
+  * feat: add support for zstd decoding (#43)
+  * feat: expose the executable bit into a HTTP header (#27)
+  * change: NAR_CACHE_URL -> NIX_CACHE_URL
+
 0.5.0 / 2021-07-16
 ==================
 
