@@ -10,7 +10,7 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/hostrouter v0.2.0
 	github.com/google/go-cmp v0.6.0
-	github.com/klauspost/compress v1.17.9
+	github.com/klauspost/compress v1.17.10
 	github.com/stretchr/testify v1.9.0
 	github.com/ulikunitz/xz v0.5.12
 )
