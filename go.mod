@@ -2,7 +2,7 @@ module github.com/numtide/nar-serve
 
 go 1.21
 
-toolchain go1.23.1
+toolchain go1.25.6
 
 require (
 	cloud.google.com/go/storage v1.43.0
