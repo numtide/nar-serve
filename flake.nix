@@ -20,7 +20,7 @@
 
       packages = eachSystem (pkgs: import ./. { nixpkgs = pkgs; });
 
-      formatter = eachSystem (pkgs: pkgs.nixfmt-rfc-style);
+      formatter = eachSystem (pkgs: pkgs.nixfmt);
 
       devShells = eachSystem (pkgs: {
         default = self.packages.${pkgs.system}.devShell;
