@@ -49,6 +49,7 @@ You can use the following environment variables to configure nar-serve:
 | `HTTP_ADDR` | `:$PORT` | HTTP address to bind the server to. When set, takes precedence over $PORT. |
 | `NIX_CACHE_URL` | `https://cache.nixos.org` | The URL of the Nix store from which NARs are fetched |
 | `DOMAIN` | "" | When set, also serve `<nar-hash>.$DOMAIN` paths. |
+| `MAX_CONCURRENCY` | `0` | How many requests may walk an archive at once. Requests over the limit wait their turn. `0` does not limit anything. |
 
 ## Contributing
 
