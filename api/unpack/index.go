@@ -51,20 +51,35 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.ServeNAR(narHash, w, req)
 }
 
+// archivePath turns a request path into the path to look for inside the
+// archive, by taking off the mount path and the store path's own directory.
+// Trailing slashes are not significant.
+func archivePath(mountPath, urlPath string) string {
+	path := strings.TrimRight(urlPath, "/")
+
+	if strings.HasPrefix(path, mountPath) {
+		// The mount path is whatever store the cache holds paths for, which is
+		// not always `/nix/store`, so count its components rather than assume
+		// there are three. One more comes off for the store path itself.
+		skip := len(strings.Split(strings.TrimSuffix(mountPath, "/"), "/")) + 1
+
+		components := strings.Split(path, "/")
+		if len(components) > skip {
+			path = strings.Join(components[skip:], "/")
+		} else {
+			path = ""
+		}
+	}
+
+	return "/" + strings.TrimLeft(path, "/")
+}
+
 func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	log.Println("narHash=", narHash)
 
-	// Do some path cleanup
-	// ignore trailing slashes
-	newPath := strings.TrimRight(req.URL.Path, "/")
-	// remove the mount path and nar hash from the path
-	if strings.HasPrefix(newPath, h.mountPath) {
-		components := strings.Split(newPath, "/")
-		newPath = strings.Join(components[4:], "/")
-	}
-	newPath = "/" + strings.TrimLeft(newPath, "/")
+	newPath := archivePath(h.mountPath, req.URL.Path)
 	log.Println("newPath=", newPath)
 
 	// Get the NAR info to find the NAR
