@@ -10,8 +10,7 @@ nixpkgs.mkShell {
     gopls
     goreleaser
     golangci-lint
-    minio
-    minio-client
+    rclone
     reflex
     awscli
     google-cloud-sdk
