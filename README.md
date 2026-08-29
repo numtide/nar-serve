@@ -49,6 +49,7 @@ You can use the following environment variables to configure nar-serve:
 | `HTTP_ADDR` | `:$PORT` | HTTP address to bind the server to. When set, takes precedence over $PORT. |
 | `NIX_CACHE_URL` | `https://cache.nixos.org` | The URL of the Nix store from which NARs are fetched |
 | `DOMAIN` | "" | When set, also serve `<nar-hash>.$DOMAIN` paths. |
+| `METRICS_ADDR` | "" | When set, serve Prometheus metrics on this address, for example `127.0.0.1:9090`. |
 
 ## Contributing
 

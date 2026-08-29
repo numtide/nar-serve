@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/numtide/nar-serve/pkg/libstore"
+	"github.com/numtide/nar-serve/pkg/metrics"
 	"github.com/numtide/nar-serve/pkg/nar"
 	"github.com/numtide/nar-serve/pkg/narinfo"
 
@@ -85,7 +86,7 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 	defer file.Close()
 
 	var r io.Reader
-	r = file
+	r = metrics.Count(file, metrics.UpstreamBytes)
 
 	// decompress on the fly
 	switch narinfo.Compression {
@@ -110,7 +111,7 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 
 	// TODO: try to load .ls files to speed-up the file lookups
 
-	narReader, err := nar.NewReader(r)
+	narReader, err := nar.NewReader(metrics.Count(r, metrics.ArchiveBytes))
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
