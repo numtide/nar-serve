@@ -243,3 +243,14 @@ func TestServeMissingStorePath(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }
+
+func TestServeDirectoryListsOnlyItsChildren(t *testing.T) {
+	srv, _ := newServer(t)
+
+	rec := get(t, srv, "GET", storePath("/lib"))
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), storePath("/lib/thing.so"))
+	assert.NotContains(t, rec.Body.String(), storePath("/libexec"),
+		"/libexec is a sibling of /lib, not a child of it")
+}
