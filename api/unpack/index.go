@@ -89,6 +89,10 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 
 	// decompress on the fly
 	switch narinfo.Compression {
+	case "none":
+		// The NAR is stored verbatim. `narinfo.Parse` turns an absent
+		// `Compression` field into `bzip2` rather than this, so `none` only
+		// ever comes from a cache that states it.
 	case "xz":
 		r, err = xz.NewReader(r)
 		if err != nil {
