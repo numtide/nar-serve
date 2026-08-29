@@ -119,6 +119,7 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	defer narReader.Close()
 
 	for {
 		hdr, err := narReader.Next()
@@ -211,8 +212,15 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 			return
 		}
 
-		// TODO: since the nar entries are sorted it's possible to abort early by
-		//       comparing the paths
+		// NAR entries are ordered, so the wanted path can only appear while
+		// the scan is still short of where its name would sort. Once an entry
+		// comes back from beyond it, the archive does not contain the path and
+		// there is nothing to gain from decompressing the remainder.
+		if !nar.PathIsLexicographicallyOrdered(hdr.Path, newPath) {
+			http.Error(w, "file not found", 404)
+
+			return
+		}
 	}
 }
 

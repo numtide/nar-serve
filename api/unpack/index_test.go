@@ -130,8 +130,9 @@ func buildNAR(t *testing.T, entries []entry) []byte {
 // The fixture deliberately contains `/lib` next to `/libexec` and
 // `/share/applications` next to `/share/applications-extra`: both pairs are
 // ones where treating a path as a plain string prefix gets the answer wrong.
-// The large file at the end makes a full scan visibly more expensive than one
-// that stops where it can.
+// The large file sits under `/share/applications-extra`, immediately past the
+// point where a scan for something under `/share/applications` should give up,
+// so a scan that runs on pays for it in bytes a test can see.
 func testNAR(t *testing.T) []byte {
 	t.Helper()
 
@@ -147,9 +148,9 @@ func testNAR(t *testing.T) []byte {
 		{path: "/share/applications", dir: true},
 		{path: "/share/applications/example.desktop", contents: desktopEntry},
 		{path: "/share/applications-extra", dir: true},
-		{path: "/share/applications-extra/other", contents: "other"},
+		{path: "/share/applications-extra/big", contents: strings.Repeat("x", 1<<16)},
 		{path: "/share/doc", dir: true},
-		{path: "/share/doc/big", contents: strings.Repeat("x", 1<<16)},
+		{path: "/share/doc/readme", contents: "readme"},
 		{path: "/share/link", linkTo: "applications/example.desktop"},
 	})
 }
@@ -253,4 +254,38 @@ func TestServeDirectoryListsOnlyItsChildren(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), storePath("/lib/thing.so"))
 	assert.NotContains(t, rec.Body.String(), storePath("/libexec"),
 		"/libexec is a sibling of /lib, not a child of it")
+}
+
+func TestServeMissingFileStopsAtItsDirectory(t *testing.T) {
+	srv, cache := newServer(t)
+
+	rec := get(t, srv, "GET", storePath("/bin/absent"))
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Less(t, cache.bytesRead(narURL), int64(len(testNAR(t)))/4,
+		"the scan should give up at /bin rather than read to the end")
+}
+
+// `/share/applications-extra` follows everything under
+// `/share/applications`, so reaching it means the wanted path has been
+// passed -- even though `-` is below `/` as a byte and a plain string
+// comparison says otherwise.
+func TestServeMissingFileStopsAtSimilarlyNamedSibling(t *testing.T) {
+	srv, cache := newServer(t)
+
+	rec := get(t, srv, "GET", storePath("/share/applications/zzz.desktop"))
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Less(t, cache.bytesRead(narURL), int64(len(testNAR(t)))/2,
+		"the scan should give up at /share/applications-extra")
+}
+
+// A path sorting after every entry cannot be ruled out until the archive
+// runs out, which still has to answer rather than hang.
+func TestServeMissingFileAfterLastEntry(t *testing.T) {
+	srv, _ := newServer(t)
+
+	rec := get(t, srv, "GET", storePath("/zzz"))
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
