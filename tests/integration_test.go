@@ -1,3 +1,8 @@
+//go:build integration
+
+// This test drives a real `minio` and a store populated by hand, so it is
+// behind a tag rather than part of what `go test ./...` runs. See README.md
+// for how to set the two up.
 package integration_test
 
 import (
