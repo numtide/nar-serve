@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/numtide/nar-serve/pkg/nar"
 	"github.com/stretchr/testify/assert"
@@ -364,4 +366,31 @@ func TestReaderSmoketest(t *testing.T) {
 	assert.NotPanics(t, func() {
 		_ = nr.Close()
 	}, "closing the reader multiple times shouldn't panic")
+}
+
+// A consumer that stops part-way through the archive and closes the reader
+// must not leave the parser goroutine behind. The parser reports the end of
+// the archive on the errors channel after it unwinds, and when nothing is
+// left to receive that it has to be able to deposit it and exit anyway.
+func TestReaderCloseReleasesParser(t *testing.T) {
+	const readers = 50
+
+	before := runtime.NumGoroutine()
+
+	for i := 0; i < readers; i++ {
+		nr, err := nar.NewReader(bytes.NewBuffer(genEmptyDirectoryNar()))
+		assert.NoError(t, err)
+
+		// Take the root entry, then walk away without reaching the end.
+		_, err = nr.Next()
+		assert.NoError(t, err)
+
+		assert.NoError(t, nr.Close())
+		assert.NoError(t, nr.Close(), "Close should be safe to call twice")
+	}
+
+	// The parsers unwind asynchronously, so let them be counted.
+	assert.Eventually(t, func() bool {
+		return runtime.NumGoroutine() < before+readers/2
+	}, time.Second, 10*time.Millisecond, "parser goroutines should have exited")
 }
