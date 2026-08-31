@@ -171,7 +171,7 @@ func TestNarInfoCachix(t *testing.T) {
 }
 
 func TestBigNarinfo(t *testing.T) {
-	f, err := os.Open("../../../test/testdata/big.narinfo")
+	f, err := os.Open("../../test/testdata/big.narinfo")
 	if err != nil {
 		panic(err)
 	}
@@ -190,7 +190,7 @@ func BenchmarkNarInfo(b *testing.B) {
 	})
 
 	{
-		f, err := os.Open("../../../test/testdata/big.narinfo")
+		f, err := os.Open("../../test/testdata/big.narinfo")
 		if err != nil {
 			panic(err)
 		}

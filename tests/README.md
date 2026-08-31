@@ -18,5 +18,5 @@ AWS_ACCESS_KEY_ID=accesskey AWS_SECRET_ACCESS_KEY=secretkey nix copy --to "s3://
 ## Run the test
 
 ```shell
-go run main.go
+go test -tags integration ./tests/
 ```
