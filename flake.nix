@@ -13,7 +13,9 @@
       systems,
     }:
     let
-      eachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f nixpkgs.legacyPackages.${system});
+      # `nixpkgs` 26.11 dropped `x86_64-darwin`.
+      supportedSystems = nixpkgs.lib.remove "x86_64-darwin" (import systems);
+      eachSystem = f: nixpkgs.lib.genAttrs supportedSystems (system: f nixpkgs.legacyPackages.${system});
     in
     {
       overlays.default = import ./overlay.nix;
