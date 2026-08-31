@@ -1,3 +1,21 @@
+0.8.0 / 2026-08-31
+==================
+
+  * feat: stop the scan once the archive is past the wanted path (#86)
+  * feat: serve file contents with an ETag, and answer a conditional request
+    without fetching the NAR (#90)
+  * feat: report to Prometheus what an instance is doing, via METRICS_ADDR (#84)
+  * feat: bound concurrent archive walks with MAX_CONCURRENCY (#83)
+  * feat: serve from the store directory the cache says it holds (#82)
+  * feat: serve NARs that are stored uncompressed
+  * fix: order NAR paths by component, so a name that prefixes another no
+    longer sorts wrong and hides a file that is there
+  * fix: list only a directory's own children, so /lib no longer swallows
+    /libexec
+  * fix: let the parser goroutine exit when the reader is closed
+  * change: bump every dependency, three of them security fixes, and move to
+    Go 1.25 (#88)
+  * change: drop x86_64-darwin, which nixpkgs no longer supports
 
 0.7.0 / 2024-07-31
 ==================
