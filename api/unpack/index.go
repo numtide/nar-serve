@@ -83,6 +83,17 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 	newPath := archivePath(h.mountPath, req.URL.Path)
 	log.Println("newPath=", newPath)
 
+	// the url carries the hash, so this answers before anything is fetched.
+	// the entry type is still unknown here, but only file bytes are ever given
+	// an etag, so a match can only be a client holding those bytes.
+	etag := etagFor(narHash, newPath)
+	if etagMatches(req.Header.Get("If-None-Match"), etag) {
+		setImmutable(w, etag)
+		w.WriteHeader(http.StatusNotModified)
+
+		return
+	}
+
 	// Get the NAR info to find the NAR
 	narinfo, err := getNarInfo(ctx, h.cache, narHash)
 	if err != nil {
@@ -204,7 +215,6 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 					http.Redirect(w, req, redirectPath, http.StatusMovedPermanently)
 				}
 			case nar.TypeRegular:
-				// TODO: ETag header matching. Use the NAR file name as the ETag
 				// TODO: expose the executable flag somehow?
 				ctype := mime.TypeByExtension(filepath.Ext(hdr.Path))
 				if ctype == "" {
@@ -216,7 +226,7 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 					w.Header().Set("NAR-Executable", "1")
 				}
 
-				w.Header().Set("Cache-Control", "immutable")
+				setImmutable(w, etag)
 				w.Header().Set("Content-Type", ctype)
 				w.Header().Set("Content-Length", fmt.Sprintf("%d", hdr.Size))
 				if req.Method != "HEAD" {
