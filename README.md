@@ -39,6 +39,9 @@ E.g.:
 NAR archives also contain information about the executable bit for each contained file.
 nar-serve uses a custom HTTP header named `NAR-executable` to indicate whether the fetched file would be executable.
 
+File contents are served with an `ETag`, and a conditional request for one is
+answered without the NAR being fetched at all.
+
 ## Configuration
 
 You can use the following environment variables to configure nar-serve:
