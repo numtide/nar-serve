@@ -45,6 +45,9 @@ type Reader struct {
 	// NarReader uses this to resume the parser
 	next chan bool
 
+	// whether Close() has already signalled the parser
+	closed bool
+
 	// keep a record of the previously received hdr.Path.
 	// Only read and updated in the Next() method, receiving from the channel
 	// populated by the goroutine, not the goroutine itself.
@@ -69,9 +72,12 @@ func NewReader(r io.Reader) (*Reader, error) {
 		contentReader: io.NopCloser(io.LimitReader(bytes.NewReader([]byte{}), 0)),
 
 		headers: make(chan *Header),
-		errors:  make(chan error),
-		err:     nil,
-		next:    make(chan bool),
+		// Buffered, so the parser can deposit its final error and exit even
+		// when nobody is going to receive it. A consumer that stops reading
+		// part-way through and calls Close() is exactly that case.
+		errors: make(chan error, 1),
+		err:    nil,
+		next:   make(chan bool),
 	}
 
 	// kick off the goroutine
@@ -321,7 +327,23 @@ func (nr *Reader) Next() (*Header, error) {
 
 	// return either an error or headers
 	select {
-	case hdr := <-nr.headers:
+	case hdr, ok := <-nr.headers:
+		// The parser closes both channels when it is done, so by the time this
+		// select runs the outcome may be waiting on either one. A closed
+		// headers channel means there is no header and the verdict is on the
+		// other.
+		if !ok {
+			err := <-nr.errors
+			if err == nil {
+				err = io.EOF
+			}
+
+			// blow fuse
+			nr.err = err
+
+			return nil, err
+		}
+
 		if !PathIsLexicographicallyOrdered(nr.previousHdrPath, hdr.Path) {
 			err := fmt.Errorf("received header in the wrong order, %v <= %v", hdr.Path, nr.previousHdrPath)
 
@@ -356,11 +378,17 @@ func (nr *Reader) Read(b []byte) (int, error) {
 }
 
 // Close does all internal cleanup. It doesn't close the underlying reader (which can be any io.Reader).
+// It is safe to call more than once, so a consumer can defer it and still
+// close explicitly.
 func (nr *Reader) Close() error {
-	if nr.err != io.EOF {
-		// Signal the parser there won't be any next.
-		close(nr.next)
+	if nr.closed || nr.err == io.EOF {
+		return nil
 	}
+
+	nr.closed = true
+
+	// Signal the parser there won't be any next.
+	close(nr.next)
 
 	return nil
 }

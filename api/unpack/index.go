@@ -52,20 +52,35 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.ServeNAR(narHash, w, req)
 }
 
+// archivePath turns a request path into the path to look for inside the
+// archive, by taking off the mount path and the store path's own directory.
+// Trailing slashes are not significant.
+func archivePath(mountPath, urlPath string) string {
+	path := strings.TrimRight(urlPath, "/")
+
+	if strings.HasPrefix(path, mountPath) {
+		// The mount path is whatever store the cache holds paths for, which is
+		// not always `/nix/store`, so count its components rather than assume
+		// there are three. One more comes off for the store path itself.
+		skip := len(strings.Split(strings.TrimSuffix(mountPath, "/"), "/")) + 1
+
+		components := strings.Split(path, "/")
+		if len(components) > skip {
+			path = strings.Join(components[skip:], "/")
+		} else {
+			path = ""
+		}
+	}
+
+	return "/" + strings.TrimLeft(path, "/")
+}
+
 func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	log.Println("narHash=", narHash)
 
-	// Do some path cleanup
-	// ignore trailing slashes
-	newPath := strings.TrimRight(req.URL.Path, "/")
-	// remove the mount path and nar hash from the path
-	if strings.HasPrefix(newPath, h.mountPath) {
-		components := strings.Split(newPath, "/")
-		newPath = strings.Join(components[4:], "/")
-	}
-	newPath = "/" + strings.TrimLeft(newPath, "/")
+	newPath := archivePath(h.mountPath, req.URL.Path)
 	log.Println("newPath=", newPath)
 
 	// Get the NAR info to find the NAR
@@ -90,6 +105,10 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 
 	// decompress on the fly
 	switch narinfo.Compression {
+	case "none":
+		// The NAR is stored verbatim. `narinfo.Parse` turns an absent
+		// `Compression` field into `bzip2` rather than this, so `none` only
+		// ever comes from a cache that states it.
 	case "xz":
 		r, err = xz.NewReader(r)
 		if err != nil {
@@ -116,6 +135,7 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	defer narReader.Close()
 
 	for {
 		hdr, err := narReader.Next()
@@ -135,17 +155,24 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 				w.Header().Set("Content-Type", "text/html")
 				fmt.Fprintf(w, "<p>%s is a directory:</p><ol>", hdr.Path)
 				flush(w)
+
+				// The directory's own path is a prefix of its siblings' paths
+				// as well as its children's, so match against it with the
+				// separator attached: `/libexec` is not inside `/lib`. The
+				// root is already `/`, and trimming keeps it that way.
+				prefix := strings.TrimSuffix(hdr.Path, "/") + "/"
+
 				for {
 					hdr2, err := narReader.Next()
 					if err != nil {
-						if err == io.EOF {
-							break
-						} else {
+						if err != io.EOF {
 							http.Error(w, err.Error(), 500)
 						}
+
+						break
 					}
 
-					if !strings.HasPrefix(hdr2.Path, hdr.Path) {
+					if !strings.HasPrefix(hdr2.Path, prefix) {
 						break
 					}
 
@@ -158,7 +185,9 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 					case nar.TypeRegular:
 						label = hdr2.Path
 					default:
-						http.Error(w, fmt.Sprintf("BUG: unknown NAR header type: %s", hdr.Type), 500)
+						http.Error(w, fmt.Sprintf("BUG: unknown NAR header type: %s", hdr2.Type), 500)
+
+						return
 					}
 
 					fmt.Fprintf(w, "<li><a href='%s'>%s</a></li>", filepath.Join(narinfo.StorePath, hdr2.Path), label)
@@ -199,8 +228,15 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 			return
 		}
 
-		// TODO: since the nar entries are sorted it's possible to abort early by
-		//       comparing the paths
+		// NAR entries are ordered, so the wanted path can only appear while
+		// the scan is still short of where its name would sort. Once an entry
+		// comes back from beyond it, the archive does not contain the path and
+		// there is nothing to gain from decompressing the remainder.
+		if !nar.PathIsLexicographicallyOrdered(hdr.Path, newPath) {
+			http.Error(w, "file not found", 404)
+
+			return
+		}
 	}
 }
 

@@ -10,10 +10,6 @@ func IsValidNodeName(nodeName string) bool {
 
 // PathIsLexicographicallyOrdered checks if two paths are lexicographically ordered component by component.
 func PathIsLexicographicallyOrdered(path1 string, path2 string) bool {
-	if path1 <= path2 {
-		return true
-	}
-
 	// n is the lower number of characters of the two paths.
 	var n int
 	if len(path1) < len(path2) {
@@ -27,8 +23,18 @@ func PathIsLexicographicallyOrdered(path1 string, path2 string) bool {
 			continue
 		}
 
-		if path1[i] == '/' && path2[i] != '/' {
+		// A `/` terminates a path component, and entries are ordered by
+		// component. So whichever path ends its component here sorts first,
+		// whatever the other one continues with: `/a/b` precedes `/a-b`
+		// because the entry `a` precedes the entry `a-b`. This has to be
+		// decided before comparing the bytes themselves, since `/` is neither
+		// the lowest nor the highest byte that can appear in a name.
+		if path1[i] == '/' {
 			return true
+		}
+
+		if path2[i] == '/' {
+			return false
 		}
 
 		return path1[i] < path2[i]

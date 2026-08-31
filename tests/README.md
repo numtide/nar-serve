@@ -1,22 +1,23 @@
 # Tests
 
-## With the minio package
+## Serve a bucket
+
+A bucket is a directory below the one being served, so creating it is creating
+that directory.
 
 ```shell
-mkdir nar
-minio server ./nar
+mkdir -p nar/nsbucket
+rclone serve s3 ./nar --addr 127.0.0.1:9000 --auth-key accesskey,secretkey
 ```
 
-## With the pkgs.minio-client package
+## Fill it
 
 ```shell
-mc config host add mycloud http://127.0.0.1:9000 accesskey secretkey
-mc mb mycloud/nar
-AWS_ACCESS_KEY_ID=accesskey AWS_SECRET_ACCESS_KEY=secretkey nix copy --to "s3://nar?region=eu-west-1&endpoint=127.0.0.1:9000&scheme=http" /nix/store/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m-curl-7.71.1-bin
+AWS_ACCESS_KEY_ID=accesskey AWS_SECRET_ACCESS_KEY=secretkey nix copy --to "s3://nsbucket?region=us-east-1&endpoint=127.0.0.1:9000&scheme=http" /nix/store/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m-curl-7.71.1-bin
 ```
 
 ## Run the test
 
 ```shell
-go run main.go
+go test -tags integration ./tests/
 ```

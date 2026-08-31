@@ -1,13 +1,21 @@
+//go:build integration
+
+// This test drives a real `minio` and a store populated by hand, so it is
+// behind a tag rather than part of what `go test ./...` runs. See README.md
+// for how to set the two up.
 package integration_test
 
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/numtide/nar-serve/pkg/libstore"
 	"github.com/stretchr/testify/assert"
@@ -22,51 +30,69 @@ func cmd(env []string, name string, args ...string) *exec.Cmd {
 	return cmd
 }
 
+// waitForServer blocks until addr accepts connections, or gives up.
+func waitForServer(addr string) error {
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		conn, err := net.DialTimeout("tcp", addr, time.Second)
+		if err == nil {
+			return conn.Close()
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("%s never came up: %w", addr, err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func TestHappyPath(t *testing.T) {
 	assert := assert.New(t)
 	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
 	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 
+	addr := "127.0.0.1:9000"
+
 	tempDir, err := ioutil.TempDir("", "nar-serve")
-	homeDir := tempDir + "/home"
-	configDir := tempDir + "/config"
-	dataDir := tempDir + "/data"
-
-	env := append(os.Environ(),
-		"AWS_ACCESS_KEY_ID="+accessKeyID,
-		"AWS_SECRET_ACCESS_KEY="+secretAccessKey,
-		"MINIO_ACCESS_KEY="+accessKeyID,
-		"MINIO_SECRET_KEY="+secretAccessKey,
-		"MINIO_REGION_NAME=us-east-1",
-		"HOME="+homeDir,
-	)
-
 	if err != nil {
 		t.Fatal("tmpdir error:", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Start the server
-	minios := cmd(env, "minio", "server", dataDir, "--config-dir", configDir)
-	err = minios.Start()
+	dataDir := tempDir + "/data"
+	homeDir := tempDir + "/home"
+
+	// `nix copy` remembers per store URL which paths that store holds, and this
+	// one is served from a directory that is empty every run.
+	env := append(os.Environ(),
+		"AWS_ACCESS_KEY_ID="+accessKeyID,
+		"AWS_SECRET_ACCESS_KEY="+secretAccessKey,
+		"HOME="+homeDir,
+	)
+
+	// A bucket is a directory below the one being served, so creating it is
+	// creating that directory.
+	err = os.MkdirAll(filepath.Join(dataDir, "nsbucket"), 0o755)
 	if err != nil {
-		t.Fatal("minio error:", err)
+		t.Fatal("bucket error:", err)
+	}
+
+	// Start the server
+	server := cmd(env, "rclone", "serve", "s3", dataDir,
+		"--addr", addr,
+		"--auth-key", accessKeyID+","+secretAccessKey,
+	)
+	err = server.Start()
+	if err != nil {
+		t.Fatal("rclone error:", err)
 	}
 	defer func() {
-		minios.Process.Kill()
-		minios.Wait()
+		server.Process.Kill()
+		server.Wait()
 	}()
 
-	minioc := cmd(env, "mc", "config", "host", "add", "narcloud", "http://127.0.0.1:9000", accessKeyID, secretAccessKey, "--config-dir", configDir, "--api", "s3v4")
-	err = minioc.Run()
+	err = waitForServer(addr)
 	if err != nil {
-		t.Fatal("mc error:", err)
-	}
-
-	minio_bucket := cmd(env, "mc", "mb", "narcloud/nsbucket")
-	err = minio_bucket.Run()
-	if err != nil {
-		t.Fatal("mc error:", err)
+		t.Fatal("rclone error:", err)
 	}
 
 	nix_copy := cmd(env, "nix", "copy", "--to", "s3://nsbucket?region=us-east-1&endpoint=127.0.0.1:9000&scheme=http", "/nix/store/irfa91bs2wfqyh2j9kl8m3rcg7h72w4m-curl-7.71.1-bin")
@@ -120,5 +146,5 @@ func TestHappyPath(t *testing.T) {
 	}
 	assert.True(is_exist, "File is not existed")
 	// Stop the server
-	minios.Process.Kill()
+	server.Process.Kill()
 }
