@@ -12,11 +12,13 @@ import (
 
 	"github.com/numtide/nar-serve/api/unpack"
 	"github.com/numtide/nar-serve/pkg/libstore"
+	"github.com/numtide/nar-serve/pkg/metrics"
 	"github.com/numtide/nar-serve/pkg/nixhash"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/hostrouter"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 //go:embed views/index.html
@@ -71,6 +73,7 @@ func main() {
 		addr        = getEnv("HTTP_ADDR", "")
 		nixCacheURL = getEnv("NIX_CACHE_URL", getEnv("NAR_CACHE_URL", "https://cache.nixos.org"))
 		domain      = getEnv("DOMAIN", "")
+		metricsAddr = getEnv("METRICS_ADDR", "")
 	)
 
 	maxConcurrency, err := strconv.Atoi(getEnv("MAX_CONCURRENCY", "0"))
@@ -115,6 +118,9 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	// Inside Recoverer, so a request that panicked is counted as the 500 the
+	// client was given rather than not at all.
+	r.Use(metrics.Middleware)
 	r.Use(middleware.CleanPath)
 	r.Use(middleware.GetHead)
 
@@ -161,11 +167,24 @@ func main() {
 
 	// Front the naked muxer with one that matches sub-domains
 
+	// Metrics go on their own listener, so an instance can report to a
+	// monitoring system on an address that is not the one it serves the world
+	// from.
+	if metricsAddr != "" {
+		metricsMux := http.NewServeMux()
+		metricsMux.Handle("/metrics", promhttp.Handler())
+
+		go func() {
+			log.Fatal(http.ListenAndServe(metricsAddr, metricsMux))
+		}()
+	}
+
 	log.Println("domain=", domain)
 	log.Println("nixCacheURL=", nixCacheURL)
 	log.Println("storeDir=", storeHandler.MountPath())
 	log.Println("addr=", addr)
 	log.Println("maxConcurrency=", maxConcurrency)
+	log.Println("metricsAddr=", metricsAddr)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
 
