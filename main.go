@@ -52,8 +52,22 @@ func main() {
 		panic(err)
 	}
 
-	// FIXME: get the mountPath from the binary cache /nix-cache-info file
-	storeHandler := unpack.NewHandler(cache, "/nix/store/")
+	// Paths from a store at one prefix are not valid under another, so serve
+	// them from wherever the cache says its store is.
+	storeDir := libstore.DefaultStoreDir
+
+	cacheInfo, err := libstore.GetCacheInfo(context.Background(), cache)
+	if err != nil {
+		// Not every cache publishes the file, and one that does not is
+		// overwhelmingly likely to be a default store. Say so and carry on
+		// rather than refuse to start.
+		log.Printf("could not read %s from %s, assuming %s: %v",
+			libstore.CacheInfoPath, nixCacheURL, storeDir, err)
+	} else {
+		storeDir = cacheInfo.StoreDir
+	}
+
+	storeHandler := unpack.NewHandler(cache, strings.TrimSuffix(storeDir, "/")+"/")
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -106,6 +120,7 @@ func main() {
 
 	log.Println("domain=", domain)
 	log.Println("nixCacheURL=", nixCacheURL)
+	log.Println("storeDir=", storeHandler.MountPath())
 	log.Println("addr=", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
