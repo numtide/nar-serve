@@ -8,7 +8,7 @@ require (
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/hostrouter v0.3.0
 	github.com/google/go-cmp v0.7.0
-	github.com/klauspost/compress v1.19.2
+	github.com/klauspost/compress v1.20.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/stretchr/testify v1.12.1
 	github.com/ulikunitz/xz v0.5.16
