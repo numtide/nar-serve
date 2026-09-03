@@ -3,7 +3,7 @@ module github.com/numtide/nar-serve
 go 1.25.0
 
 require (
-	cloud.google.com/go/storage v1.66.0
+	cloud.google.com/go/storage v1.67.0
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/hostrouter v0.3.0
