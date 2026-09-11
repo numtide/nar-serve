@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/numtide/nar-serve/pkg/compression"
 )
 
 var _ BinaryCacheReader = HTTPBinaryCacheStore{}
@@ -47,7 +49,10 @@ func (c HTTPBinaryCacheStore) GetFile(ctx context.Context, path string) (io.Read
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("unexpected file status '%s'", resp.Status)
 	}
-	return resp.Body, nil
+	// the transport only undoes gzip, and only when it asked for it. a cache
+	// stores .ls and narinfo files under whatever ls-compression and
+	// narinfo-compression say, and serves them with that as the encoding.
+	return compression.Decode(resp.Header.Get("Content-Encoding"), resp.Body)
 }
 
 // URL returns the store URI

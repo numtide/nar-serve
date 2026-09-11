@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -86,10 +87,11 @@ func (c *countingReader) Close() error { return nil }
 // entry describes one NAR member. A zero linkTo and dir make it a regular
 // file, whatever contents says.
 type entry struct {
-	path     string
-	contents string
-	linkTo   string
-	dir      bool
+	path       string
+	contents   string
+	linkTo     string
+	dir        bool
+	executable bool
 }
 
 func buildNAR(t *testing.T, entries []entry) []byte {
@@ -112,6 +114,7 @@ func buildNAR(t *testing.T, entries []entry) []byte {
 		default:
 			hdr.Type = nar.TypeRegular
 			hdr.Size = int64(len(e.contents))
+			hdr.Executable = e.executable
 		}
 
 		require.NoError(t, narWriter.WriteHeader(hdr))
@@ -133,13 +136,11 @@ func buildNAR(t *testing.T, entries []entry) []byte {
 // The large file sits under `/share/applications-extra`, immediately past the
 // point where a scan for something under `/share/applications` should give up,
 // so a scan that runs on pays for it in bytes a test can see.
-func testNAR(t *testing.T) []byte {
-	t.Helper()
-
-	return buildNAR(t, []entry{
+func testEntries() []entry {
+	return []entry{
 		{path: "/", dir: true},
 		{path: "/bin", dir: true},
-		{path: "/bin/example", contents: "#!/bin/sh\n"},
+		{path: "/bin/example", contents: "#!/bin/sh\n", executable: true},
 		{path: "/lib", dir: true},
 		{path: "/lib/thing.so", contents: "lib"},
 		{path: "/libexec", dir: true},
@@ -152,19 +153,36 @@ func testNAR(t *testing.T) []byte {
 		{path: "/share/doc", dir: true},
 		{path: "/share/doc/readme", contents: "readme"},
 		{path: "/share/link", linkTo: "applications/example.desktop"},
-	})
+	}
+}
+
+func testNAR(t *testing.T) []byte {
+	t.Helper()
+
+	return buildNAR(t, testEntries())
 }
 
 func newServer(t *testing.T) (http.Handler, *memCache) {
 	t.Helper()
 
+	return newServerWith(t, nil)
+}
+
+// newServerWith serves the fixture plus whatever extra files the cache holds.
+func newServerWith(t *testing.T, extra map[string][]byte) (http.Handler, *memCache) {
+	t.Helper()
+
 	narinfo := fmt.Sprintf("StorePath: %s%s\nURL: %s\nCompression: none\n",
 		storeDir, storeName, narURL)
 
-	cache := newMemCache(map[string][]byte{
+	files := map[string][]byte{
 		storeHash + ".narinfo": []byte(narinfo),
 		narURL:                 testNAR(t),
-	})
+	}
+
+	maps.Copy(files, extra)
+
+	cache := newMemCache(files)
 
 	handler := unpack.NewHandler(cache, storeDir)
 

@@ -10,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
+	"github.com/numtide/nar-serve/pkg/compression"
+
 	"io"
 	"net/url"
 )
@@ -90,7 +92,7 @@ func (c *S3BinaryCacheStore) GetFile(ctx context.Context, path string) (io.ReadC
 		return nil, err
 	}
 
-	return obj.Body, nil // for now we return Object data with type blob
+	return compression.Decode(aws.StringValue(obj.ContentEncoding), obj.Body)
 }
 
 // URL returns the store URI
