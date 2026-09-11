@@ -7,6 +7,8 @@ import (
 	"path"
 
 	"cloud.google.com/go/storage"
+
+	"github.com/numtide/nar-serve/pkg/compression"
 )
 
 var _ BinaryCacheReader = GCSBinaryCacheStore{}
@@ -57,8 +59,14 @@ func (c GCSBinaryCacheStore) FileExists(ctx context.Context, path string) (bool,
 
 // GetFile returns a file stream from the store if the file exists
 func (c GCSBinaryCacheStore) GetFile(ctx context.Context, path string) (io.ReadCloser, error) {
-	obj := c.getObject(path)
-	return obj.NewReader(ctx)
+	r, err := c.getObject(path).NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// gcs undoes gzip itself and then reports no encoding, so this only sees
+	// what it still has to undo.
+	return compression.Decode(r.Attrs.ContentEncoding, r)
 }
 
 // URL returns the store URI

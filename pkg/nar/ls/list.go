@@ -4,14 +4,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/numtide/nar-serve/pkg/nar"
 )
 
 // Root represents the .ls file root entry.
 type Root struct {
-	Version int `json:"version"`
-	Root    Node
+	Version int  `json:"version"`
+	Root    Node `json:"root"`
+}
+
+// Lookup returns the entry at path, "/" being the root, or nil when the
+// archive has no such entry.
+func (r *Root) Lookup(path string) *Node {
+	node := &r.Root
+
+	for _, name := range strings.Split(strings.Trim(path, "/"), "/") {
+		if name == "" {
+			continue
+		}
+
+		if node.Type != nar.TypeDirectory {
+			return nil
+		}
+
+		node = node.Entries[name]
+		if node == nil {
+			return nil
+		}
+	}
+
+	return node
 }
 
 // Node represents one of the entries in a .ls file.

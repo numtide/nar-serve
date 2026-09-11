@@ -1,24 +1,25 @@
 package unpack
 
 import (
-	"compress/bzip2"
 	"context"
 	"fmt"
-	"log"
 	"io"
+	"log"
+	"maps"
 	"mime"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 
+	"github.com/numtide/nar-serve/pkg/compression"
 	"github.com/numtide/nar-serve/pkg/libstore"
 	"github.com/numtide/nar-serve/pkg/metrics"
 	"github.com/numtide/nar-serve/pkg/nar"
+	"github.com/numtide/nar-serve/pkg/nar/ls"
 	"github.com/numtide/nar-serve/pkg/narinfo"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/klauspost/compress/zstd"
-	"github.com/ulikunitz/xz"
 )
 
 type Handler struct {
@@ -101,6 +102,37 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	// a listing answers everything but a file's bytes without touching the nar
+	if listing := getListing(ctx, h.cache, narHash); listing != nil {
+		node := listing.Lookup(newPath)
+		if node == nil {
+			http.Error(w, "file not found", 404)
+
+			return
+		}
+
+		switch node.Type {
+		case nar.TypeDirectory:
+			writeDirectoryHeader(w, newPath)
+
+			if err := writeListedEntries(w, narinfo.StorePath, newPath, node); err != nil {
+				http.Error(w, err.Error(), 500)
+			}
+
+			return
+		case nar.TypeSymlink:
+			redirectSymlink(w, req, h.mountPath, absSymlink(narinfo.StorePath, newPath, node.LinkTarget))
+
+			return
+		case nar.TypeRegular:
+			if req.Method == "HEAD" {
+				setFileHeaders(w, etag, newPath, node.Size, node.Executable)
+
+				return
+			}
+		}
+	}
+
 	// TODO: consider keeping a LRU cache
 	narPATH := narinfo.URL
 	log.Println("fetching the NAR:", narPATH)
@@ -111,35 +143,11 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 	}
 	defer file.Close()
 
-	var r io.Reader
-	r = metrics.Count(file, metrics.UpstreamBytes)
-
-	// decompress on the fly
-	switch narinfo.Compression {
-	case "none":
-		// The NAR is stored verbatim. `narinfo.Parse` turns an absent
-		// `Compression` field into `bzip2` rather than this, so `none` only
-		// ever comes from a cache that states it.
-	case "xz":
-		r, err = xz.NewReader(r)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-	case "bzip2":
-		r = bzip2.NewReader(r)
-	case "zstd":
-		r, err = zstd.NewReader(r)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-	default:
-		http.Error(w, fmt.Sprintf("compression %s not handled", narinfo.Compression), 500)
+	r, err := compression.NewReader(narinfo.Compression, metrics.Count(file, metrics.UpstreamBytes))
+	if err != nil {
+		http.Error(w, err.Error(), 500)
 		return
 	}
-
-	// TODO: try to load .ls files to speed-up the file lookups
 
 	narReader, err := nar.NewReader(metrics.Count(r, metrics.ArchiveBytes))
 	if err != nil {
@@ -163,9 +171,7 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 		if hdr.Path == newPath {
 			switch hdr.Type {
 			case nar.TypeDirectory:
-				w.Header().Set("Content-Type", "text/html")
-				fmt.Fprintf(w, "<p>%s is a directory:</p><ol>", hdr.Path)
-				flush(w)
+				writeDirectoryHeader(w, hdr.Path)
 
 				// The directory's own path is a prefix of its siblings' paths
 				// as well as its children's, so match against it with the
@@ -187,48 +193,17 @@ func (h *Handler) ServeNAR(narHash string, w http.ResponseWriter, req *http.Requ
 						break
 					}
 
-					var label string
-					switch hdr2.Type {
-					case nar.TypeDirectory:
-						label = hdr2.Path + "/"
-					case nar.TypeSymlink:
-						label = hdr2.Path + " -> " + absSymlink(narinfo, hdr2)
-					case nar.TypeRegular:
-						label = hdr2.Path
-					default:
-						http.Error(w, fmt.Sprintf("BUG: unknown NAR header type: %s", hdr2.Type), 500)
+					if err := writeDirectoryEntry(w, narinfo.StorePath, hdr2.Path, hdr2.Type, hdr2.LinkTarget); err != nil {
+						http.Error(w, err.Error(), 500)
 
 						return
 					}
-
-					fmt.Fprintf(w, "<li><a href='%s'>%s</a></li>", filepath.Join(narinfo.StorePath, hdr2.Path), label)
-					flush(w)
 				}
 			case nar.TypeSymlink:
-				redirectPath := absSymlink(narinfo, hdr)
-
-				// Make sure the symlink is absolute
-
-				if !strings.HasPrefix(redirectPath, h.mountPath) {
-					fmt.Fprintf(w, "found symlink out of store: %s\n", redirectPath)
-				} else {
-					http.Redirect(w, req, redirectPath, http.StatusMovedPermanently)
-				}
+				redirectSymlink(w, req, h.mountPath, absSymlink(narinfo.StorePath, hdr.Path, hdr.LinkTarget))
 			case nar.TypeRegular:
-				// TODO: expose the executable flag somehow?
-				ctype := mime.TypeByExtension(filepath.Ext(hdr.Path))
-				if ctype == "" {
-					ctype = "application/octet-stream"
-					// TODO: use http.DetectContentType as a fallback
-				}
+				setFileHeaders(w, etag, hdr.Path, hdr.Size, hdr.Executable)
 
-				if hdr.Executable {
-					w.Header().Set("NAR-Executable", "1")
-				}
-
-				setImmutable(w, etag)
-				w.Header().Set("Content-Type", ctype)
-				w.Header().Set("Content-Length", fmt.Sprintf("%d", hdr.Size))
 				if req.Method != "HEAD" {
 					_, _ = io.CopyN(w, narReader, hdr.Size)
 				}
@@ -266,12 +241,106 @@ func getNarInfo(ctx context.Context, nixCache libstore.BinaryCacheReader, key st
 	return ni, err
 }
 
-func absSymlink(narinfo *narinfo.NarInfo, hdr *nar.Header) string {
-	if filepath.IsAbs(hdr.LinkTarget) {
-		return hdr.LinkTarget
+// getListing fetches the .ls that a cache written with write-nar-listing
+// keeps beside each narinfo. Most caches have none, so whatever goes wrong
+// here only means the archive has to be walked.
+func getListing(ctx context.Context, nixCache libstore.BinaryCacheReader, key string) *ls.Root {
+	r, err := nixCache.GetFile(ctx, key+".ls")
+	if err != nil {
+		return nil
+	}
+	defer r.Close()
+
+	listing, err := ls.ParseLS(metrics.Count(r, metrics.UpstreamBytes))
+	if err != nil {
+		log.Println("ignoring listing:", err)
+
+		return nil
 	}
 
-	return filepath.Join(narinfo.StorePath, filepath.Dir(hdr.Path), hdr.LinkTarget)
+	return listing
+}
+
+func absSymlink(storePath, path, target string) string {
+	if filepath.IsAbs(target) {
+		return target
+	}
+
+	return filepath.Join(storePath, filepath.Dir(path), target)
+}
+
+func redirectSymlink(w http.ResponseWriter, req *http.Request, mountPath, target string) {
+	if !strings.HasPrefix(target, mountPath) {
+		fmt.Fprintf(w, "found symlink out of store: %s\n", target)
+
+		return
+	}
+
+	http.Redirect(w, req, target, http.StatusMovedPermanently)
+}
+
+func setFileHeaders(w http.ResponseWriter, etag, path string, size int64, executable bool) {
+	ctype := mime.TypeByExtension(filepath.Ext(path))
+	if ctype == "" {
+		ctype = "application/octet-stream"
+		// TODO: use http.DetectContentType as a fallback
+	}
+
+	if executable {
+		w.Header().Set("NAR-Executable", "1")
+	}
+
+	setImmutable(w, etag)
+	w.Header().Set("Content-Type", ctype)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
+}
+
+func writeDirectoryHeader(w http.ResponseWriter, path string) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, "<p>%s is a directory:</p><ol>", path)
+	flush(w)
+}
+
+func writeDirectoryEntry(w http.ResponseWriter, storePath, path string, nodeType nar.NodeType, linkTarget string) error {
+	var label string
+
+	switch nodeType {
+	case nar.TypeDirectory:
+		label = path + "/"
+	case nar.TypeSymlink:
+		label = path + " -> " + absSymlink(storePath, path, linkTarget)
+	case nar.TypeRegular:
+		label = path
+	default:
+		return fmt.Errorf("BUG: unknown NAR header type: %s", nodeType)
+	}
+
+	fmt.Fprintf(w, "<li><a href='%s'>%s</a></li>", filepath.Join(storePath, path), label)
+	flush(w)
+
+	return nil
+}
+
+// writeListedEntries walks a listing the way the archive lays its entries
+// out, names in byte order and a directory's children right behind it, so
+// the page is the same whichever way it was made.
+func writeListedEntries(w http.ResponseWriter, storePath, dir string, node *ls.Node) error {
+	for _, name := range slices.Sorted(maps.Keys(node.Entries)) {
+		child := node.Entries[name]
+		path := filepath.Join(dir, name)
+
+		if err := writeDirectoryEntry(w, storePath, path, child.Type, child.LinkTarget); err != nil {
+			return err
+		}
+
+		if child.Type == nar.TypeDirectory {
+			if err := writeListedEntries(w, storePath, path, child); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func flush(rw http.ResponseWriter) {
