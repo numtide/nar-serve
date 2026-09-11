@@ -1,3 +1,11 @@
+0.9.0 / 2026-09-11
+==================
+
+  * feat: answer a missing path, a directory page, a symlink and a HEAD from
+    the cache's .ls listing, without fetching the NAR (#91)
+  * feat: decode the Content-Encoding a cache serves its files with (#91)
+  * change: build package.nix from the tree, so a tag carries its own version
+
 0.8.1 / 2026-09-11
 ==================
 

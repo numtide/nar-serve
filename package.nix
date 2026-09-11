@@ -1,21 +1,26 @@
 {
   buildGoModule,
-  fetchFromGitHub,
   lib,
   nixosTests,
 }:
-buildGoModule rec {
+buildGoModule {
   pname = "nar-serve";
-  version = "0.8.1";
+  version = "0.9.0";
 
-  src = fetchFromGitHub {
-    owner = "numtide";
-    repo = "nar-serve";
-    rev = "v${version}";
-    hash = "sha256-72gY3V9XLi+qZWDH3ARR2DLEYC3cszYkAVBBBRTNcrM=";
+  src = lib.fileset.toSource {
+    root = ./.;
+    fileset = lib.fileset.unions [
+      ./go.mod
+      ./go.sum
+      ./main.go
+      ./main_test.go
+      ./api
+      ./pkg
+      ./views
+    ];
   };
 
-  vendorHash = "sha256-sms5yAbbc6PN02DFFRTktjaryDF/h+3b14BC+ZwMBOA=";
+  vendorHash = "sha256-82uMrkvqsUaSvEi0mlGBOAP9JCLABsHsHsikrrCknWY=";
 
   doCheck = false;
 
