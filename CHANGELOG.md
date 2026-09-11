@@ -1,3 +1,9 @@
+0.8.1 / 2026-09-11
+==================
+
+  * change: update cloud.google.com/go/storage to v1.67.1 (#79)
+  * change: update github.com/klauspost/compress to v1.20.0 (#52)
+
 0.8.0 / 2026-08-31
 ==================
 
