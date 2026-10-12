@@ -1,9 +1,9 @@
 module github.com/numtide/nar-serve
 
-go 1.25.0
+go 1.26.0
 
 require (
-	cloud.google.com/go/storage v1.67.1
+	cloud.google.com/go/storage v1.69.0
 	github.com/andybalholm/brotli v1.2.4
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/go-chi/chi/v5 v5.3.2
@@ -38,7 +38,7 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.21 // indirect
-	github.com/googleapis/gax-go/v2 v2.24.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.26.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
