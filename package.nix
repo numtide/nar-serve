@@ -20,7 +20,7 @@ buildGoModule {
     ];
   };
 
-  vendorHash = "sha256-82uMrkvqsUaSvEi0mlGBOAP9JCLABsHsHsikrrCknWY=";
+  vendorHash = "sha256-wztJSuOOTogRr/rfTJ9ojIgk1n70sNUdPViU+/wBHIw=";
 
   doCheck = false;
 
