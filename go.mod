@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.67.1
 	github.com/andybalholm/brotli v1.2.4
 	github.com/aws/aws-sdk-go v1.55.8
-	github.com/go-chi/chi/v5 v5.4.0
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/hostrouter v0.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/klauspost/compress v1.20.0
